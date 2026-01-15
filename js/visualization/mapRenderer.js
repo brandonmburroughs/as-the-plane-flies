@@ -235,7 +235,12 @@ class MapRenderer {
             .attr('cx', d => d.x)
             .attr('cy', d => d.y)
             .on('click', function(event, d) {
-                self.setOrigin(d.code);
+                // Toggle: click again to deselect
+                if (self.selectedOrigin === d.code) {
+                    self.clearOrigin();
+                } else {
+                    self.setOrigin(d.code);
+                }
             })
             .on('mouseenter', function(event, d) {
                 self.showTooltip(event, d);
@@ -291,6 +296,12 @@ class MapRenderer {
             .classed('connection', d => {
                 if (d.code === this.selectedOrigin) return false;
                 return !DataLoader.hasDirectFlight(this.selectedOrigin, d.code);
+            })
+            .style('fill', d => {
+                if (d.code === this.selectedOrigin) return CONFIG.colors.origin;
+                const travelTime = DataLoader.getTravelTime(this.selectedOrigin, d.code);
+                if (!travelTime) return CONFIG.colors.noRoute;
+                return this.timeColorScale(travelTime);
             });
     }
 
@@ -302,6 +313,9 @@ class MapRenderer {
      */
     renderLabels() {
         const self = this;
+
+        // Calculate label offsets to avoid collisions
+        const labelOffsets = this.calculateLabelOffsets();
 
         const labels = this.labelsLayer.selectAll('.airport-label')
             .data(this.geoPositions, d => d.code);
@@ -315,14 +329,105 @@ class MapRenderer {
                 if (d.hub === 'large') classes += ' large-hub';
                 return classes;
             })
-            .attr('x', d => d.x + 10)
-            .attr('y', d => d.y + 4)
+            .attr('x', d => d.x + (labelOffsets[d.code]?.x || 10))
+            .attr('y', d => d.y + (labelOffsets[d.code]?.y || 4))
             .text(d => d.code)
             .merge(labels)
-            .attr('x', d => d.x + 10)
-            .attr('y', d => d.y + 4)
+            .attr('x', d => d.x + (labelOffsets[d.code]?.x || 10))
+            .attr('y', d => d.y + (labelOffsets[d.code]?.y || 4))
             .classed('origin-label', d => d.code === this.selectedOrigin)
             .classed('always-visible', d => d.hub === 'large' || d.code === this.selectedOrigin);
+    }
+
+    /**
+     * Calculate label offsets to prevent overlapping
+     * Uses a greedy algorithm to place labels in non-overlapping positions
+     */
+    calculateLabelOffsets() {
+        const offsets = {};
+        const labelWidth = 30;
+        const labelHeight = 14;
+
+        // Possible label positions relative to airport dot
+        const positions = [
+            { x: 10, y: 4 },    // Right (default)
+            { x: -35, y: 4 },   // Left
+            { x: 10, y: -10 },  // Top-right
+            { x: 10, y: 18 },   // Bottom-right
+            { x: -35, y: -10 }, // Top-left
+            { x: -35, y: 18 },  // Bottom-left
+            { x: -12, y: -12 }, // Top-center
+            { x: -12, y: 20 },  // Bottom-center
+        ];
+
+        // Get always-visible labels (large hubs + origin)
+        const visibleLabels = this.geoPositions.filter(
+            p => p.hub === 'large' || p.code === this.selectedOrigin
+        );
+
+        const placedLabels = []; // Track placed label bounding boxes
+
+        for (const airport of visibleLabels) {
+            let bestPosition = positions[0];
+            let minOverlap = Infinity;
+
+            // Try each position and find the one with least overlap
+            for (const pos of positions) {
+                const rect = {
+                    x: airport.x + pos.x,
+                    y: airport.y + pos.y - labelHeight,
+                    width: labelWidth,
+                    height: labelHeight
+                };
+
+                // Calculate total overlap with placed labels
+                let totalOverlap = 0;
+                for (const placed of placedLabels) {
+                    totalOverlap += this.calculateOverlap(rect, placed);
+                }
+
+                // Also check overlap with airport dots
+                for (const other of this.geoPositions.slice(0, this.airportFilter)) {
+                    const dotRect = {
+                        x: other.x - 5,
+                        y: other.y - 5,
+                        width: 10,
+                        height: 10
+                    };
+                    totalOverlap += this.calculateOverlap(rect, dotRect) * 0.5;
+                }
+
+                if (totalOverlap < minOverlap) {
+                    minOverlap = totalOverlap;
+                    bestPosition = pos;
+                }
+            }
+
+            offsets[airport.code] = bestPosition;
+            placedLabels.push({
+                x: airport.x + bestPosition.x,
+                y: airport.y + bestPosition.y - labelHeight,
+                width: labelWidth,
+                height: labelHeight
+            });
+        }
+
+        return offsets;
+    }
+
+    /**
+     * Calculate overlap area between two rectangles
+     */
+    calculateOverlap(rect1, rect2) {
+        const xOverlap = Math.max(0,
+            Math.min(rect1.x + rect1.width, rect2.x + rect2.width) -
+            Math.max(rect1.x, rect2.x)
+        );
+        const yOverlap = Math.max(0,
+            Math.min(rect1.y + rect1.height, rect2.y + rect2.height) -
+            Math.max(rect1.y, rect2.y)
+        );
+        return xOverlap * yOverlap;
     }
 
     /**
@@ -358,6 +463,35 @@ class MapRenderer {
         // If in flight-time mode, recalculate positions
         if (this.currentMode === 'flightTime') {
             this.updateFlightTimeView();
+        }
+    }
+
+    /**
+     * Clear the selected origin
+     */
+    clearOrigin() {
+        this.selectedOrigin = null;
+
+        // Reset dropdown
+        d3.select('#origin-select').property('value', '');
+
+        // Reset airport colors
+        this.updateAirportColors();
+
+        // Update labels
+        this.renderLabels();
+
+        // Clear legend
+        if (window.legend) {
+            window.legend.clearTimeScale();
+        }
+
+        // If in flight-time mode, switch back to geographic
+        if (this.currentMode === 'flightTime') {
+            this.currentMode = 'geographic';
+            d3.select('#btn-distance').classed('active', true);
+            d3.select('#btn-flight-time').classed('active', false);
+            this.transitionToGeographic();
         }
     }
 

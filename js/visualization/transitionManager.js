@@ -26,39 +26,57 @@ class TransitionManager {
 
         const duration = CONFIG.transitionDuration;
         const ease = CONFIG.transitionEase;
+        const renderer = this.renderer;
 
         // Update geoPositions with new coordinates for rendering
-        this.renderer.geoPositions.forEach((pos, i) => {
+        renderer.geoPositions.forEach((pos, i) => {
             if (targetPositions[i]) {
                 pos.x = targetPositions[i].x;
                 pos.y = targetPositions[i].y;
             }
         });
 
-        // Animate airport circles
-        this.renderer.airportsLayer.selectAll('.airport')
-            .data(this.renderer.geoPositions, d => d.code)
+        // Calculate label offsets for new positions
+        const labelOffsets = renderer.calculateLabelOffsets();
+
+        // Get origin index for stagger effect (origin moves first, then outward)
+        const originIdx = renderer.getOriginIndex();
+        const originPos = originIdx >= 0 ? renderer.geoPositions[originIdx] : null;
+
+        // Animate airport circles with stagger based on distance from origin
+        renderer.airportsLayer.selectAll('.airport')
+            .data(renderer.geoPositions, d => d.code)
             .transition()
+            .delay((d, i) => {
+                if (!originPos || d.code === renderer.selectedOrigin) return 0;
+                // Stagger based on original distance from origin (before transition)
+                const dist = Math.hypot(d.geoX - originPos.geoX, d.geoY - originPos.geoY);
+                return Math.min(dist * 0.3, 200); // Max 200ms delay
+            })
             .duration(duration)
             .ease(ease)
             .attr('cx', d => d.x)
             .attr('cy', d => d.y);
 
-        // Animate labels with slight delay
-        this.renderer.labelsLayer.selectAll('.airport-label')
-            .data(this.renderer.geoPositions, d => d.code)
+        // Animate labels with same stagger
+        renderer.labelsLayer.selectAll('.airport-label')
+            .data(renderer.geoPositions, d => d.code)
             .transition()
-            .delay(50)
+            .delay((d, i) => {
+                if (!originPos || d.code === renderer.selectedOrigin) return 50;
+                const dist = Math.hypot(d.geoX - originPos.geoX, d.geoY - originPos.geoY);
+                return Math.min(dist * 0.3, 200) + 50;
+            })
             .duration(duration)
             .ease(ease)
-            .attr('x', d => d.x + 10)
-            .attr('y', d => d.y + 4);
+            .attr('x', d => d.x + (labelOffsets[d.code]?.x || 10))
+            .attr('y', d => d.y + (labelOffsets[d.code]?.y || 4));
 
         // Mark transition complete
         setTimeout(() => {
             this.isTransitioning = false;
             if (onComplete) onComplete();
-        }, duration + 100);
+        }, duration + 300);
     }
 
     /**
