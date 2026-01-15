@@ -1,0 +1,388 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    min-height: 100vh;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header / Controls Panel */
+.controls-panel {
+    background: #ffffff;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.controls-panel h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #2c7be5;
+}
+
+.help-text {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 0.75rem;
+    font-style: italic;
+}
+
+.controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: flex-end;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.control-group label {
+    font-size: 0.75rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+/* Select dropdowns */
+select {
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    background: #fff;
+    color: #333;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    cursor: pointer;
+    min-width: 180px;
+}
+
+select:hover {
+    border-color: #2c7be5;
+}
+
+select:focus {
+    outline: none;
+    border-color: #2c7be5;
+    box-shadow: 0 0 0 3px rgba(44, 123, 229, 0.15);
+}
+
+/* Toggle buttons */
+.toggle-buttons {
+    display: flex;
+    gap: 0;
+}
+
+.toggle-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    background: #fff;
+    color: #666;
+    border: 1px solid #d0d0d0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:first-child {
+    border-radius: 6px 0 0 6px;
+}
+
+.toggle-btn:last-child {
+    border-radius: 0 6px 6px 0;
+    border-left: none;
+}
+
+.toggle-btn:hover {
+    background: #f0f4f8;
+    color: #333;
+}
+
+.toggle-btn.active {
+    background: #2c7be5;
+    color: #fff;
+    border-color: #2c7be5;
+}
+
+/* Main visualization container */
+#visualization-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    position: relative;
+}
+
+#visualization-container svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Map styles */
+.state {
+    fill: #e8f4f8;
+    stroke: #b8d4e3;
+    stroke-width: 1px;
+}
+
+.state:hover {
+    fill: #d4e9f2;
+}
+
+.state-ghost {
+    fill: none;
+    stroke: #2c7be5;
+    stroke-width: 1.5px;
+    stroke-dasharray: 6, 4;
+    opacity: 0.5;
+}
+
+/* Airport dots */
+.airport {
+    cursor: pointer;
+    transition: r 0.2s ease, fill 0.3s ease;
+    fill: #5a9bd5;
+    stroke: #fff;
+    stroke-width: 1px;
+}
+
+.airport:hover {
+    r: 10;
+}
+
+.airport.origin {
+    fill: #e63946;
+    stroke: #fff;
+    stroke-width: 2px;
+}
+
+.airport.direct {
+    fill: #2a9d8f;
+}
+
+.airport.connection {
+    fill: #e9c46a;
+}
+
+.airport.no-route {
+    fill: #adb5bd;
+}
+
+/* Airport labels */
+.airport-label {
+    font-size: 11px;
+    fill: #555;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    text-shadow: 1px 1px 1px rgba(255,255,255,0.9), -1px -1px 1px rgba(255,255,255,0.9);
+    font-weight: 500;
+}
+
+/* Always show labels for large hubs and origin */
+.airport-label.always-visible {
+    opacity: 1;
+}
+
+/* Show label on hover */
+.airport-label.hover-visible {
+    opacity: 1;
+}
+
+/* Origin label styling */
+.airport-label.origin-label {
+    fill: #e63946;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* Large hub label styling */
+.airport-label.large-hub {
+    fill: #333;
+}
+
+/* Mesh triangles (for rubber-sheet mode) */
+.mesh-triangle {
+    fill: none;
+    stroke: #b8d4e3;
+    stroke-width: 0.25px;
+    opacity: 0.3;
+}
+
+/* Hover connection line */
+.hover-line {
+    fill: none;
+    stroke: #e63946;
+    stroke-width: 2px;
+    stroke-dasharray: 6, 4;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Info panel */
+.info-panel {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 100;
+}
+
+/* Tooltip */
+.tooltip {
+    position: fixed;
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 250px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    color: #333;
+}
+
+.tooltip.hidden {
+    display: none;
+}
+
+.tooltip strong {
+    color: #2c7be5;
+}
+
+.tooltip .travel-time {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+    color: #2a9d8f;
+    font-weight: 500;
+}
+
+/* Legend */
+#legend {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    padding: 1rem;
+    min-width: 200px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+}
+
+#legend h4 {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: #444;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.legend-dot.origin {
+    background: #e63946;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #e63946;
+}
+
+.legend-dot.direct {
+    background: #2a9d8f;
+}
+
+.legend-dot.connection {
+    background: #e9c46a;
+}
+
+.legend-dot.no-route {
+    background: #adb5bd;
+}
+
+#time-scale {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #eee;
+}
+
+#time-scale svg {
+    display: block;
+}
+
+/* Loading state */
+.loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    color: #888;
+}
+
+.loading::after {
+    content: '';
+    animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+.error {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1rem;
+    color: #e63946;
+    background: #fff;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .controls-row {
+        gap: 1rem;
+    }
+
+    .control-group {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .toggle-btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}

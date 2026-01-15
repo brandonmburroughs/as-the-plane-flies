@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Time Map - Distance vs Travel Time Visualization</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="controls-panel">
+            <h1>US Flight Time Map</h1>
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="origin-select">Starting City:</label>
+                    <select id="origin-select">
+                        <option value="">Select an airport...</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>View Mode:</label>
+                    <div class="toggle-buttons">
+                        <button id="btn-distance" class="toggle-btn active">Geographic Distance</button>
+                        <button id="btn-flight-time" class="toggle-btn">Flight Time</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Visual Style:</label>
+                    <div class="toggle-buttons">
+                        <button id="btn-points" class="toggle-btn active">Points Only</button>
+                        <button id="btn-rubber" class="toggle-btn">Map Distortion</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="airport-filter">Show Airports:</label>
+                    <select id="airport-filter">
+                        <option value="30">Top 30</option>
+                        <option value="50">Top 50</option>
+                        <option value="100">All 100</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>View Controls:</label>
+                    <div class="toggle-buttons">
+                        <button id="btn-reset-zoom" class="toggle-btn">Reset View</button>
+                        <button id="btn-fit-airports" class="toggle-btn">Fit All</button>
+                    </div>
+                </div>
+            </div>
+            <div class="help-text">Scroll to zoom, drag to pan. Click an airport to select it as origin.</div>
+        </header>
+
+        <main id="visualization-container"></main>
+
+        <aside class="info-panel">
+            <div id="tooltip" class="tooltip hidden"></div>
+            <div id="legend"></div>
+        </aside>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+    <script src="https://unpkg.com/d3-interpolate-path@2.3.0/build/d3-interpolate-path.min.js"></script>
+
+    <!-- Application modules -->
+    <script src="js/config.js"></script>
+    <script src="js/data/dataLoader.js"></script>
+    <script src="js/algorithms/mds.js"></script>
+    <script src="js/algorithms/meshDeformer.js"></script>
+    <script src="js/visualization/mapRenderer.js"></script>
+    <script src="js/visualization/pointsMode.js"></script>
+    <script src="js/visualization/rubberSheetMode.js"></script>
+    <script src="js/visualization/transitionManager.js"></script>
+    <script src="js/ui/controls.js"></script>
+    <script src="js/ui/legend.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

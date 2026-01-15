@@ -1,0 +1,635 @@
+/**
+ * Map Renderer Module
+ *
+ * Main orchestrator for the visualization. Handles:
+ * - SVG setup and layer management
+ * - Data loading and projection
+ * - Coordinating between modes (geographic, flight time)
+ * - Coordinating between visual styles (points, rubber-sheet)
+ */
+
+class MapRenderer {
+    constructor(containerId) {
+        this.containerId = containerId;
+        this.container = d3.select(`#${containerId}`);
+
+        // Dimensions
+        this.width = CONFIG.width;
+        this.height = CONFIG.height;
+
+        // Map projection
+        this.projection = d3.geoAlbersUsa()
+            .scale(1300)
+            .translate([this.width / 2, this.height / 2]);
+        this.pathGenerator = d3.geoPath().projection(this.projection);
+
+        // State
+        this.currentMode = CONFIG.defaults.mode;
+        this.visualStyle = CONFIG.defaults.visualStyle;
+        this.selectedOrigin = null;
+        this.airportFilter = CONFIG.defaults.airportCount;
+
+        // Data
+        this.usMap = null;
+        this.allAirports = [];
+        this.airports = [];
+        this.matrixData = null;
+        this.geoPositions = [];
+        this.currentPositions = [];
+
+        // Layers
+        this.svg = null;
+        this.mainGroup = null; // Container for all zoomable content
+        this.mapLayer = null;
+        this.ghostLayer = null;
+        this.meshLayer = null;
+        this.connectionsLayer = null;
+        this.airportsLayer = null;
+        this.labelsLayer = null;
+
+        // Zoom behavior
+        this.zoom = null;
+        this.currentTransform = d3.zoomIdentity;
+
+        // Submodules
+        this.pointsMode = null;
+        this.rubberSheetMode = null;
+        this.transitionManager = null;
+
+        // Color scale for travel times
+        this.timeColorScale = d3.scaleSequential(d3.interpolateYlOrRd)
+            .domain([CONFIG.timeScale.min, CONFIG.timeScale.max]);
+    }
+
+    /**
+     * Initialize the visualization
+     */
+    async init() {
+        this.showLoading();
+
+        try {
+            await this.loadData();
+            this.initSVG();
+            this.initSubmodules();
+            this.render();
+            this.hideLoading();
+        } catch (error) {
+            console.error('Failed to initialize map:', error);
+            this.showError('Failed to load map data');
+        }
+    }
+
+    /**
+     * Load all required data
+     */
+    async loadData() {
+        const { usMap, airports, matrixData } = await DataLoader.loadAll();
+
+        this.usMap = usMap;
+        this.allAirports = airports;
+        this.matrixData = matrixData;
+
+        // Apply initial filter
+        this.applyAirportFilter(this.airportFilter);
+    }
+
+    /**
+     * Apply airport filter (top N airports)
+     */
+    applyAirportFilter(count) {
+        this.airportFilter = count;
+        this.airports = this.allAirports.slice(0, count);
+
+        // Calculate geographic positions
+        this.geoPositions = this.airports.map(airport => {
+            const projected = this.projection([airport.lon, airport.lat]);
+            if (projected) {
+                return {
+                    x: projected[0],
+                    y: projected[1],
+                    geoX: projected[0],
+                    geoY: projected[1],
+                    ...airport
+                };
+            }
+            // Handle airports outside continental US (HNL, ANC, SJU)
+            return {
+                x: this.width / 2,
+                y: this.height / 2,
+                geoX: this.width / 2,
+                geoY: this.height / 2,
+                outsideProjection: true,
+                ...airport
+            };
+        });
+
+        // Initialize current positions to geographic
+        this.currentPositions = this.geoPositions.map(p => ({ x: p.x, y: p.y }));
+    }
+
+    /**
+     * Initialize SVG and layers
+     */
+    initSVG() {
+        const self = this;
+
+        // Clear any existing SVG
+        this.container.selectAll('svg').remove();
+
+        this.svg = this.container.append('svg')
+            .attr('width', this.width)
+            .attr('height', this.height)
+            .attr('viewBox', `0 0 ${this.width} ${this.height}`)
+            .style('background', CONFIG.colors.background);
+
+        // Create zoom behavior
+        this.zoom = d3.zoom()
+            .scaleExtent([0.5, 8])
+            .on('zoom', (event) => {
+                self.currentTransform = event.transform;
+                self.mainGroup.attr('transform', event.transform);
+            });
+
+        // Apply zoom to SVG
+        this.svg.call(this.zoom);
+
+        // Create main group for all zoomable content
+        this.mainGroup = this.svg.append('g').attr('class', 'main-group');
+
+        // Create layers inside main group (bottom to top)
+        this.ghostLayer = this.mainGroup.append('g').attr('class', 'ghost-layer');
+        this.mapLayer = this.mainGroup.append('g').attr('class', 'map-layer');
+        this.meshLayer = this.mainGroup.append('g').attr('class', 'mesh-layer');
+        this.connectionsLayer = this.mainGroup.append('g').attr('class', 'connections-layer');
+        this.hoverLineLayer = this.mainGroup.append('g').attr('class', 'hover-line-layer');
+        this.airportsLayer = this.mainGroup.append('g').attr('class', 'airports-layer');
+        this.labelsLayer = this.mainGroup.append('g').attr('class', 'labels-layer');
+    }
+
+    /**
+     * Initialize submodules
+     */
+    initSubmodules() {
+        this.pointsMode = new PointsMode(this);
+        this.rubberSheetMode = new RubberSheetMode(this);
+        this.transitionManager = new TransitionManager(this);
+    }
+
+    /**
+     * Main render function
+     */
+    render() {
+        this.renderStates();
+        this.renderAirports();
+        this.renderLabels();
+    }
+
+    /**
+     * Render US state boundaries
+     */
+    renderStates() {
+        const states = topojson.feature(this.usMap, this.usMap.objects.states);
+
+        this.mapLayer.selectAll('.state')
+            .data(states.features)
+            .join('path')
+            .attr('class', 'state')
+            .attr('d', this.pathGenerator);
+    }
+
+    /**
+     * Render ghost (reference) state boundaries for rubber-sheet mode
+     */
+    renderGhostStates() {
+        const states = topojson.feature(this.usMap, this.usMap.objects.states);
+
+        this.ghostLayer.selectAll('.state-ghost')
+            .data(states.features)
+            .join('path')
+            .attr('class', 'state-ghost')
+            .attr('d', this.pathGenerator);
+    }
+
+    /**
+     * Hide ghost states
+     */
+    hideGhostStates() {
+        this.ghostLayer.selectAll('.state-ghost').remove();
+    }
+
+    /**
+     * Render airport dots
+     */
+    renderAirports() {
+        const self = this;
+
+        const airports = this.airportsLayer.selectAll('.airport')
+            .data(this.geoPositions, d => d.code);
+
+        airports.exit().remove();
+
+        airports.enter()
+            .append('circle')
+            .attr('class', 'airport')
+            .attr('r', d => CONFIG.airportRadius[d.hub] || 5)
+            .attr('cx', d => d.x)
+            .attr('cy', d => d.y)
+            .on('click', function(event, d) {
+                self.setOrigin(d.code);
+            })
+            .on('mouseenter', function(event, d) {
+                self.showTooltip(event, d);
+                d3.select(this).attr('r', CONFIG.airportRadiusHover);
+                // Show label on hover for non-always-visible labels
+                self.labelsLayer.selectAll('.airport-label')
+                    .filter(l => l.code === d.code)
+                    .classed('hover-visible', true);
+                // Show curved line from origin to hovered airport
+                if (self.selectedOrigin && d.code !== self.selectedOrigin) {
+                    self.showHoverLine(d);
+                }
+            })
+            .on('mouseleave', function(event, d) {
+                self.hideTooltip();
+                d3.select(this).attr('r', CONFIG.airportRadius[d.hub] || 5);
+                // Hide label when not hovering
+                self.labelsLayer.selectAll('.airport-label')
+                    .filter(l => l.code === d.code)
+                    .classed('hover-visible', false);
+                // Hide curved line
+                self.hideHoverLine();
+            })
+            .merge(airports)
+            .attr('cx', d => d.x)
+            .attr('cy', d => d.y)
+            .classed('origin', d => d.code === this.selectedOrigin);
+
+        this.updateAirportColors();
+    }
+
+    /**
+     * Update airport colors based on travel time from origin
+     */
+    updateAirportColors() {
+        if (!this.selectedOrigin) {
+            this.airportsLayer.selectAll('.airport')
+                .style('fill', null)
+                .classed('origin', false)
+                .classed('direct', false)
+                .classed('connection', false);
+            return;
+        }
+
+        const self = this;
+
+        this.airportsLayer.selectAll('.airport')
+            .classed('origin', d => d.code === this.selectedOrigin)
+            .classed('direct', d => {
+                if (d.code === this.selectedOrigin) return false;
+                return DataLoader.hasDirectFlight(this.selectedOrigin, d.code);
+            })
+            .classed('connection', d => {
+                if (d.code === this.selectedOrigin) return false;
+                return !DataLoader.hasDirectFlight(this.selectedOrigin, d.code);
+            });
+    }
+
+    /**
+     * Render airport labels
+     * - Origin airport: always visible
+     * - Large hubs: always visible
+     * - Others: visible on hover
+     */
+    renderLabels() {
+        const self = this;
+
+        const labels = this.labelsLayer.selectAll('.airport-label')
+            .data(this.geoPositions, d => d.code);
+
+        labels.exit().remove();
+
+        labels.enter()
+            .append('text')
+            .attr('class', d => {
+                let classes = 'airport-label';
+                if (d.hub === 'large') classes += ' large-hub';
+                return classes;
+            })
+            .attr('x', d => d.x + 10)
+            .attr('y', d => d.y + 4)
+            .text(d => d.code)
+            .merge(labels)
+            .attr('x', d => d.x + 10)
+            .attr('y', d => d.y + 4)
+            .classed('origin-label', d => d.code === this.selectedOrigin)
+            .classed('always-visible', d => d.hub === 'large' || d.code === this.selectedOrigin);
+    }
+
+    /**
+     * Update label visibility (called when origin changes)
+     */
+    updateLabelVisibility() {
+        this.labelsLayer.selectAll('.airport-label')
+            .classed('origin-label', d => d.code === this.selectedOrigin)
+            .classed('always-visible', d => d.hub === 'large' || d.code === this.selectedOrigin);
+    }
+
+    /**
+     * Set the origin airport
+     */
+    setOrigin(airportCode) {
+        this.selectedOrigin = airportCode;
+
+        // Update dropdown
+        d3.select('#origin-select').property('value', airportCode);
+
+        // Update airport colors
+        this.updateAirportColors();
+
+        // Update label visibility
+        this.updateLabelVisibility();
+
+        // Update legend
+        if (window.legend) {
+            const times = DataLoader.getMatrixRow(airportCode);
+            window.legend.updateForOrigin(airportCode, times);
+        }
+
+        // If in flight-time mode, recalculate positions
+        if (this.currentMode === 'flightTime') {
+            this.updateFlightTimeView();
+        }
+    }
+
+    /**
+     * Set the view mode (geographic or flightTime)
+     */
+    setMode(mode) {
+        if (mode === this.currentMode) return;
+
+        this.currentMode = mode;
+
+        if (mode === 'geographic') {
+            this.transitionToGeographic();
+        } else if (mode === 'flightTime') {
+            if (!this.selectedOrigin) {
+                alert('Please select a starting city first');
+                this.currentMode = 'geographic';
+                d3.select('#btn-distance').classed('active', true);
+                d3.select('#btn-flight-time').classed('active', false);
+                return;
+            }
+            this.updateFlightTimeView();
+        }
+    }
+
+    /**
+     * Set the visual style (points or rubberSheet)
+     * - points: Only airport dots move, states stay fixed
+     * - rubberSheet: Both airports and states morph together, with ghost overlay
+     */
+    setVisualStyle(style) {
+        if (style === this.visualStyle) return;
+
+        const previousStyle = this.visualStyle;
+        this.visualStyle = style;
+
+        if (style === 'rubberSheet') {
+            // Show ghost reference of original map
+            this.renderGhostStates();
+
+            if (this.currentMode === 'flightTime') {
+                // Switching to Map Distortion - morph the states
+                this.rubberSheetMode.activate();
+                this.rubberSheetMode.update();
+            }
+        } else {
+            // Hide ghost overlay
+            this.hideGhostStates();
+
+            if (this.currentMode === 'flightTime') {
+                // Switching to Points Only - restore states to geographic
+                this.rubberSheetMode.deactivate();
+            }
+        }
+    }
+
+    /**
+     * Transition to geographic view
+     */
+    transitionToGeographic() {
+        const targetPositions = this.geoPositions.map(p => ({
+            x: p.geoX,
+            y: p.geoY
+        }));
+
+        this.transitionManager.transition(targetPositions, () => {
+            this.currentPositions = targetPositions;
+        });
+
+        // If in Map Distortion mode, restore states to geographic
+        if (this.visualStyle === 'rubberSheet') {
+            this.rubberSheetMode.transitionToGeographic();
+        }
+    }
+
+    /**
+     * Update flight time view positions
+     */
+    updateFlightTimeView() {
+        if (!this.selectedOrigin) return;
+
+        if (this.visualStyle === 'points') {
+            this.pointsMode.update();
+        } else {
+            this.rubberSheetMode.update();
+        }
+    }
+
+    /**
+     * Show tooltip
+     */
+    showTooltip(event, airport) {
+        const tooltip = d3.select('#tooltip');
+
+        let content = `<strong>${airport.name}</strong><br>`;
+        content += `${airport.city}, ${airport.state} (${airport.code})`;
+
+        if (this.selectedOrigin && airport.code !== this.selectedOrigin) {
+            const travelTime = DataLoader.getTravelTime(this.selectedOrigin, airport.code);
+            const isDirect = DataLoader.hasDirectFlight(this.selectedOrigin, airport.code);
+
+            if (travelTime) {
+                const hours = Math.floor(travelTime / 60);
+                const mins = Math.round(travelTime % 60);
+                content += `<div class="travel-time">`;
+                content += `From ${this.selectedOrigin}: ${hours}h ${mins}m`;
+                content += isDirect ? ' (direct)' : ' (connection)';
+                content += `</div>`;
+            }
+        }
+
+        tooltip
+            .html(content)
+            .style('left', (event.pageX + 15) + 'px')
+            .style('top', (event.pageY - 10) + 'px')
+            .classed('hidden', false);
+    }
+
+    /**
+     * Hide tooltip
+     */
+    hideTooltip() {
+        d3.select('#tooltip').classed('hidden', true);
+    }
+
+    /**
+     * Show curved dotted line from origin to hovered airport
+     */
+    showHoverLine(targetAirport) {
+        // Get origin airport position
+        const originData = this.geoPositions.find(p => p.code === this.selectedOrigin);
+        if (!originData) return;
+
+        // Get current positions (may be transformed in flight time mode)
+        const originPos = this.currentPositions[this.geoPositions.indexOf(originData)] || originData;
+        const targetPos = this.currentPositions[this.geoPositions.indexOf(targetAirport)] || targetAirport;
+
+        // Calculate control point for quadratic bezier curve
+        // Offset perpendicular to the line for a nice arc
+        const midX = (originPos.x + targetPos.x) / 2;
+        const midY = (originPos.y + targetPos.y) / 2;
+
+        // Calculate perpendicular offset
+        const dx = targetPos.x - originPos.x;
+        const dy = targetPos.y - originPos.y;
+        const dist = Math.hypot(dx, dy);
+
+        // Curve amount proportional to distance (but capped)
+        const curveAmount = Math.min(dist * 0.2, 50);
+
+        // Perpendicular direction (rotate 90 degrees)
+        let perpX = dy / dist * curveAmount;
+        let perpY = -dx / dist * curveAmount;
+
+        // Ensure curve is always on top (negative Y in screen coordinates)
+        if (perpY > 0) {
+            perpX = -perpX;
+            perpY = -perpY;
+        }
+
+        // Control point
+        const ctrlX = midX + perpX;
+        const ctrlY = midY + perpY;
+
+        // Create curved path
+        const pathData = `M ${originPos.x} ${originPos.y} Q ${ctrlX} ${ctrlY} ${targetPos.x} ${targetPos.y}`;
+
+        // Remove existing line and add new one
+        this.hoverLineLayer.selectAll('.hover-line').remove();
+
+        this.hoverLineLayer.append('path')
+            .attr('class', 'hover-line')
+            .attr('d', pathData)
+            .style('fill', 'none')
+            .style('stroke', CONFIG.colors.origin)
+            .style('stroke-width', 2)
+            .style('stroke-dasharray', '6, 4')
+            .style('opacity', 0.7);
+    }
+
+    /**
+     * Hide the hover connection line
+     */
+    hideHoverLine() {
+        this.hoverLineLayer.selectAll('.hover-line').remove();
+    }
+
+    /**
+     * Show loading indicator
+     */
+    showLoading() {
+        this.container.append('div')
+            .attr('class', 'loading')
+            .text('Loading');
+    }
+
+    /**
+     * Hide loading indicator
+     */
+    hideLoading() {
+        this.container.selectAll('.loading').remove();
+    }
+
+    /**
+     * Show error message
+     */
+    showError(message) {
+        this.container.selectAll('.loading').remove();
+        this.container.append('div')
+            .attr('class', 'error')
+            .text(message);
+    }
+
+    /**
+     * Get the travel time matrix for currently visible airports
+     */
+    getCurrentMatrix() {
+        const codes = this.airports.map(a => a.code);
+        return DataLoader.getSubMatrix(codes);
+    }
+
+    /**
+     * Get origin index in current airports list
+     */
+    getOriginIndex() {
+        return this.airports.findIndex(a => a.code === this.selectedOrigin);
+    }
+
+    /**
+     * Reset zoom to default view
+     */
+    resetZoom() {
+        this.svg.transition()
+            .duration(750)
+            .call(this.zoom.transform, d3.zoomIdentity);
+    }
+
+    /**
+     * Fit view to show all airports
+     */
+    fitToAirports() {
+        if (this.geoPositions.length === 0) return;
+
+        // Calculate bounding box of all airport positions
+        const xValues = this.geoPositions.map(p => p.x);
+        const yValues = this.geoPositions.map(p => p.y);
+
+        const minX = Math.min(...xValues);
+        const maxX = Math.max(...xValues);
+        const minY = Math.min(...yValues);
+        const maxY = Math.max(...yValues);
+
+        const padding = 50;
+        const boxWidth = maxX - minX + padding * 2;
+        const boxHeight = maxY - minY + padding * 2;
+
+        const scale = Math.min(
+            this.width / boxWidth,
+            this.height / boxHeight,
+            2 // Max scale
+        );
+
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        const transform = d3.zoomIdentity
+            .translate(this.width / 2, this.height / 2)
+            .scale(scale)
+            .translate(-centerX, -centerY);
+
+        this.svg.transition()
+            .duration(750)
+            .call(this.zoom.transform, transform);
+    }
+}

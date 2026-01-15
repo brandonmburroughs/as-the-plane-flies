@@ -1,0 +1,22 @@
+{
+  "name": "distance_and_time_visualization",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "serve": "serve -l 3000",
+    "data:process": "node scripts/data-pipeline/process-bts-data.js scripts/raw-data/",
+    "data:simulate": "node scripts/data-pipeline/generate-matrix.js",
+    "data:restore": "cp data/matrix-simulated.json data/matrix.json && echo 'Restored simulated data'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "serve": "^14.2.5"
+  }
+}
