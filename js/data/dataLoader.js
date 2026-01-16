@@ -46,7 +46,13 @@ const DataLoader = {
         if (this.cache.airports) return this.cache.airports;
 
         try {
-            this.cache.airports = await d3.json(CONFIG.dataUrls.airports);
+            const allAirports = await d3.json(CONFIG.dataUrls.airports);
+            // Filter out Hawaii, Alaska, and Puerto Rico - they don't work well
+            // with the "flying makes the country smaller" concept
+            const excludedStates = ['HI', 'AK', 'PR'];
+            this.cache.airports = allAirports.filter(
+                airport => !excludedStates.includes(airport.state)
+            );
             return this.cache.airports;
         } catch (error) {
             console.error('Failed to load airports:', error);

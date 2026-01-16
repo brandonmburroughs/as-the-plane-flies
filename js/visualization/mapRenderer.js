@@ -72,6 +72,12 @@ class MapRenderer {
             this.initSVG();
             this.initSubmodules();
             this.render();
+
+            // Render ghost states if rubberSheet is the default
+            if (this.visualStyle === 'rubberSheet') {
+                this.renderGhostStates();
+            }
+
             this.hideLoading();
         } catch (error) {
             console.error('Failed to initialize map:', error);
@@ -189,9 +195,14 @@ class MapRenderer {
      */
     renderStates() {
         const states = topojson.feature(this.usMap, this.usMap.objects.states);
+        // Filter out Alaska (02), Hawaii (15), and Puerto Rico (72)
+        const excludedFips = ['02', '15', '72'];
+        const filteredStates = states.features.filter(
+            f => !excludedFips.includes(f.id)
+        );
 
         this.mapLayer.selectAll('.state')
-            .data(states.features)
+            .data(filteredStates)
             .join('path')
             .attr('class', 'state')
             .attr('d', this.pathGenerator);
@@ -202,9 +213,14 @@ class MapRenderer {
      */
     renderGhostStates() {
         const states = topojson.feature(this.usMap, this.usMap.objects.states);
+        // Filter out Alaska (02), Hawaii (15), and Puerto Rico (72)
+        const excludedFips = ['02', '15', '72'];
+        const filteredStates = states.features.filter(
+            f => !excludedFips.includes(f.id)
+        );
 
         this.ghostLayer.selectAll('.state-ghost')
-            .data(states.features)
+            .data(filteredStates)
             .join('path')
             .attr('class', 'state-ghost')
             .attr('d', this.pathGenerator);
@@ -274,11 +290,15 @@ class MapRenderer {
 
     /**
      * Update airport colors based on travel time from origin
+     * Direct flights: solid fill with travel time color
+     * Connections: ring (white fill, colored stroke)
      */
     updateAirportColors() {
         if (!this.selectedOrigin) {
             this.airportsLayer.selectAll('.airport')
                 .style('fill', null)
+                .style('stroke', null)
+                .style('stroke-width', null)
                 .classed('origin', false)
                 .classed('direct', false)
                 .classed('connection', false);
@@ -301,7 +321,29 @@ class MapRenderer {
                 if (d.code === this.selectedOrigin) return CONFIG.colors.origin;
                 const travelTime = DataLoader.getTravelTime(this.selectedOrigin, d.code);
                 if (!travelTime) return CONFIG.colors.noRoute;
-                return this.timeColorScale(travelTime);
+                const color = this.timeColorScale(travelTime);
+                // Connections get white fill (ring style)
+                if (!DataLoader.hasDirectFlight(this.selectedOrigin, d.code)) {
+                    return '#ffffff';
+                }
+                return color;
+            })
+            .style('stroke', d => {
+                if (d.code === this.selectedOrigin) return null;
+                const travelTime = DataLoader.getTravelTime(this.selectedOrigin, d.code);
+                if (!travelTime) return null;
+                // Connections get colored stroke
+                if (!DataLoader.hasDirectFlight(this.selectedOrigin, d.code)) {
+                    return this.timeColorScale(travelTime);
+                }
+                return null;
+            })
+            .style('stroke-width', d => {
+                if (d.code === this.selectedOrigin) return null;
+                if (!DataLoader.hasDirectFlight(this.selectedOrigin, d.code)) {
+                    return 2.5;
+                }
+                return null;
             });
     }
 
@@ -448,6 +490,11 @@ class MapRenderer {
         // Update dropdown
         d3.select('#origin-select').property('value', airportCode);
 
+        // Update URL for sharing
+        if (typeof updateURL === 'function') {
+            updateURL(airportCode);
+        }
+
         // Update airport colors
         this.updateAirportColors();
 
@@ -457,7 +504,7 @@ class MapRenderer {
         // Update legend
         if (window.legend) {
             const times = DataLoader.getMatrixRow(airportCode);
-            window.legend.updateForOrigin(airportCode, times);
+            window.legend.updateForOrigin(airportCode, times, this.geoPositions);
         }
 
         // If in flight-time mode, recalculate positions
@@ -474,6 +521,11 @@ class MapRenderer {
 
         // Reset dropdown
         d3.select('#origin-select').property('value', '');
+
+        // Update URL for sharing
+        if (typeof updateURL === 'function') {
+            updateURL(null);
+        }
 
         // Reset airport colors
         this.updateAirportColors();
@@ -603,11 +655,36 @@ class MapRenderer {
             }
         }
 
+        // Set content first to measure size
+        tooltip.html(content).classed('hidden', false);
+
+        // Get tooltip dimensions
+        const tooltipNode = tooltip.node();
+        const tooltipWidth = tooltipNode.offsetWidth;
+        const tooltipHeight = tooltipNode.offsetHeight;
+
+        // Calculate position with edge detection
+        const padding = 15;
+        let left = event.pageX + padding;
+        let top = event.pageY - 10;
+
+        // Flip horizontally if too close to right edge
+        if (left + tooltipWidth > window.innerWidth - padding) {
+            left = event.pageX - tooltipWidth - padding;
+        }
+
+        // Flip vertically if too close to bottom edge
+        if (top + tooltipHeight > window.innerHeight - padding) {
+            top = event.pageY - tooltipHeight - padding;
+        }
+
+        // Ensure not off top or left edge
+        left = Math.max(padding, left);
+        top = Math.max(padding, top);
+
         tooltip
-            .html(content)
-            .style('left', (event.pageX + 15) + 'px')
-            .style('top', (event.pageY - 10) + 'px')
-            .classed('hidden', false);
+            .style('left', left + 'px')
+            .style('top', top + 'px');
     }
 
     /**

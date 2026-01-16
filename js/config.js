@@ -42,7 +42,7 @@ const CONFIG = {
     defaults: {
         airportCount: 30,
         mode: 'geographic',
-        visualStyle: 'points'
+        visualStyle: 'rubberSheet'
     },
 
     // Data URLs

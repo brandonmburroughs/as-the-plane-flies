@@ -10,6 +10,27 @@ let controls = null;
 let legend = null;
 
 /**
+ * Get origin from URL query parameter
+ */
+function getOriginFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('origin');
+}
+
+/**
+ * Update URL with current origin (without page reload)
+ */
+function updateURL(originCode) {
+    const url = new URL(window.location);
+    if (originCode) {
+        url.searchParams.set('origin', originCode);
+    } else {
+        url.searchParams.delete('origin');
+    }
+    window.history.replaceState({}, '', url);
+}
+
+/**
  * Initialize the application
  */
 async function initApp() {
@@ -27,10 +48,20 @@ async function initApp() {
         legend = new Legend('legend');
         window.legend = legend; // Make accessible to mapRenderer
 
-        console.log('Application initialized successfully');
+        // Check for origin in URL
+        const urlOrigin = getOriginFromURL();
+        if (urlOrigin && mapRenderer.allAirports.some(a => a.code === urlOrigin)) {
+            mapRenderer.setOrigin(urlOrigin);
+        }
 
-        // Set default origin for demo (optional)
-        // mapRenderer.setOrigin('SFO');
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mapRenderer.selectedOrigin) {
+                mapRenderer.clearOrigin();
+            }
+        });
+
+        console.log('Application initialized successfully');
 
     } catch (error) {
         console.error('Failed to initialize application:', error);

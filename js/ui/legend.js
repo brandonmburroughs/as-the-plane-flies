@@ -20,11 +20,11 @@ class Legend {
 
         this.container.append('h4').text('Legend');
 
-        // Airport indicators
+        // Airport type indicators
         const items = [
             { class: 'origin', label: 'Selected Origin' },
-            { class: 'direct', label: 'Direct Flight' },
-            { class: 'connection', label: 'Connection Required' }
+            { class: 'direct-example', label: 'Direct Flight' },
+            { class: 'connection-example', label: 'Connection Required' }
         ];
 
         items.forEach(item => {
@@ -41,8 +41,9 @@ class Legend {
      * Update legend to show travel time scale from selected origin
      * @param {string} originCode - Selected origin airport code
      * @param {number[]} travelTimes - Array of travel times from origin
+     * @param {Object[]} geoPositions - Airport positions for geographic distance calc
      */
-    updateForOrigin(originCode, travelTimes) {
+    updateForOrigin(originCode, travelTimes, geoPositions) {
         const scaleContainer = this.container.select('#time-scale');
         scaleContainer.html('');
 
@@ -54,13 +55,24 @@ class Legend {
 
         const maxTime = Math.min(d3.max(validTimes), CONFIG.timeScale.max);
 
-        // Count direct vs connection flights
-        const directCount = validTimes.filter((_, i) => {
-            const codes = DataLoader.matrixData?.airports || [];
-            if (i >= codes.length) return false;
-            return DataLoader.hasDirectFlight(originCode, codes[i]);
-        }).length;
-        const connectionCount = validTimes.length - directCount;
+        // Count direct vs connection flights using the matrix airport codes
+        const matrixAirports = DataLoader.cache.matrix?.airports || [];
+        let directCount = 0;
+        let connectionCount = 0;
+
+        travelTimes.forEach((time, i) => {
+            if (time > 0 && isFinite(time) && i < matrixAirports.length) {
+                const destCode = matrixAirports[i];
+                if (DataLoader.hasDirectFlight(originCode, destCode)) {
+                    directCount++;
+                } else {
+                    connectionCount++;
+                }
+            }
+        });
+
+        // Find closest by flight time vs closest geographically
+        const closestInfo = this.findClosestComparison(originCode, travelTimes, geoPositions);
 
         // Origin title
         scaleContainer.append('div')
@@ -76,6 +88,23 @@ class Legend {
             .style('color', '#666')
             .style('margin-bottom', '0.75rem')
             .html(`<span style="color: #2a9d8f">${directCount} direct</span> · <span style="color: #e9c46a">${connectionCount} connections</span>`);
+
+        // Closest comparison insight (only show if they're different)
+        if (closestInfo && closestInfo.closestByFlight !== closestInfo.closestByGeo) {
+            const insightDiv = scaleContainer.append('div')
+                .style('font-size', '0.8rem')
+                .style('color', '#555')
+                .style('margin-bottom', '0.75rem')
+                .style('padding', '0.5rem')
+                .style('background', '#f0f7ff')
+                .style('border-radius', '4px')
+                .style('line-height', '1.4');
+
+            insightDiv.html(
+                `<strong>Closest by air:</strong> ${closestInfo.closestByFlight} (${closestInfo.flightTime})<br>` +
+                `<strong>Closest on map:</strong> ${closestInfo.closestByGeo} (${closestInfo.geoFlightTime})`
+            );
+        }
 
         // Travel time label
         scaleContainer.append('div')
@@ -146,5 +175,69 @@ class Legend {
      */
     clearTimeScale() {
         this.container.select('#time-scale').html('');
+    }
+
+    /**
+     * Find closest airport by flight time vs geographic distance
+     * @param {string} originCode - Origin airport code
+     * @param {number[]} travelTimes - Array of travel times
+     * @param {Object[]} geoPositions - Airport geo positions
+     * @returns {Object|null} Comparison info or null if not enough data
+     */
+    findClosestComparison(originCode, travelTimes, geoPositions) {
+        if (!geoPositions || geoPositions.length === 0) return null;
+
+        const matrixAirports = DataLoader.cache.matrix?.airports || [];
+        const originGeo = geoPositions.find(p => p.code === originCode);
+        if (!originGeo) return null;
+
+        let closestByFlight = null;
+        let minFlightTime = Infinity;
+
+        let closestByGeo = null;
+        let minGeoDist = Infinity;
+
+        // Find closest by flight time and by geographic distance
+        travelTimes.forEach((time, i) => {
+            if (i >= matrixAirports.length) return;
+            const destCode = matrixAirports[i];
+            if (destCode === originCode) return;
+
+            const destGeo = geoPositions.find(p => p.code === destCode);
+            if (!destGeo) return;
+
+            // Check flight time
+            if (time > 0 && isFinite(time) && time < minFlightTime) {
+                minFlightTime = time;
+                closestByFlight = destCode;
+            }
+
+            // Check geographic distance (using screen coordinates from projection)
+            const geoDist = Math.hypot(destGeo.geoX - originGeo.geoX, destGeo.geoY - originGeo.geoY);
+            if (geoDist > 0 && geoDist < minGeoDist) {
+                minGeoDist = geoDist;
+                closestByGeo = destCode;
+            }
+        });
+
+        if (!closestByFlight || !closestByGeo) return null;
+
+        // Format flight times
+        const formatTime = (mins) => {
+            const h = Math.floor(mins / 60);
+            const m = Math.round(mins % 60);
+            return `${h}h ${m}m`;
+        };
+
+        // Get flight time to the geographically closest airport
+        const geoClosestIdx = matrixAirports.indexOf(closestByGeo);
+        const geoFlightTime = geoClosestIdx >= 0 ? travelTimes[geoClosestIdx] : null;
+
+        return {
+            closestByFlight,
+            closestByGeo,
+            flightTime: formatTime(minFlightTime),
+            geoFlightTime: geoFlightTime ? formatTime(geoFlightTime) : 'N/A'
+        };
     }
 }

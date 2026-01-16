@@ -322,6 +322,15 @@ select:focus {
     background: #e9c46a;
 }
 
+.legend-dot.direct-example {
+    background: #f4a261;
+}
+
+.legend-dot.connection-example {
+    background: #ffffff;
+    border: 2.5px solid #f4a261;
+}
+
 .legend-dot.no-route {
     background: #adb5bd;
 }

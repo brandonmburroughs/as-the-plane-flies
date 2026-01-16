@@ -75,9 +75,14 @@ class RubberSheetMode {
         const self = this;
         const renderer = this.renderer;
         const states = topojson.feature(renderer.usMap, renderer.usMap.objects.states);
+        // Filter out Alaska (02), Hawaii (15), and Puerto Rico (72)
+        const excludedFips = ['02', '15', '72'];
+        const filteredStates = states.features.filter(
+            f => !excludedFips.includes(f.id)
+        );
 
         renderer.mapLayer.selectAll('.state')
-            .data(states.features)
+            .data(filteredStates)
             .transition()
             .duration(CONFIG.transitionDuration)
             .ease(CONFIG.transitionEase)
@@ -178,9 +183,14 @@ class RubberSheetMode {
     transitionToGeographic() {
         const renderer = this.renderer;
         const states = topojson.feature(renderer.usMap, renderer.usMap.objects.states);
+        // Filter out Alaska (02), Hawaii (15), and Puerto Rico (72)
+        const excludedFips = ['02', '15', '72'];
+        const filteredStates = states.features.filter(
+            f => !excludedFips.includes(f.id)
+        );
 
         renderer.mapLayer.selectAll('.state')
-            .data(states.features)
+            .data(filteredStates)
             .transition()
             .duration(CONFIG.transitionDuration)
             .ease(CONFIG.transitionEase)
