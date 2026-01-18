@@ -9,6 +9,7 @@
     "test:headed": "playwright test --headed",
     "serve": "serve -l 3000",
     "data:process": "node scripts/data-pipeline/process-bts-data.js scripts/raw-data/",
+    "data:fetch-airports": "node scripts/data-pipeline/fetch-airports.js",
     "data:simulate": "node scripts/data-pipeline/generate-matrix.js",
     "data:restore": "cp data/matrix-simulated.json data/matrix.json && echo 'Restored simulated data'"
   },

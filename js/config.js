@@ -40,7 +40,7 @@ const CONFIG = {
 
     // Default filter settings
     defaults: {
-        airportCount: 30,
+        airportCount: 150,
         mode: 'geographic',
         visualStyle: 'rubberSheet'
     },

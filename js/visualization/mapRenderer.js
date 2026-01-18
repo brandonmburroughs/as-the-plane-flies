@@ -28,6 +28,7 @@ class MapRenderer {
         this.visualStyle = CONFIG.defaults.visualStyle;
         this.selectedOrigin = null;
         this.airportFilter = CONFIG.defaults.airportCount;
+        this.showDirectOnly = false;
 
         // Data
         this.usMap = null;
@@ -299,9 +300,12 @@ class MapRenderer {
                 .style('fill', null)
                 .style('stroke', null)
                 .style('stroke-width', null)
+                .style('opacity', null)
                 .classed('origin', false)
                 .classed('direct', false)
                 .classed('connection', false);
+            this.labelsLayer.selectAll('.airport-label')
+                .style('opacity', null);
             return;
         }
 
@@ -342,6 +346,26 @@ class MapRenderer {
                 if (d.code === this.selectedOrigin) return null;
                 if (!DataLoader.hasDirectFlight(this.selectedOrigin, d.code)) {
                     return 2.5;
+                }
+                return null;
+            })
+            .style('opacity', d => {
+                if (d.code === this.selectedOrigin) return 1;
+                if (!this.showDirectOnly) return 1;
+                // Fade connections when Direct Only is active
+                if (!DataLoader.hasDirectFlight(this.selectedOrigin, d.code)) {
+                    return 0.3;
+                }
+                return 1;
+            });
+
+        // Also update label opacity
+        this.labelsLayer.selectAll('.airport-label')
+            .style('opacity', d => {
+                if (d.code === this.selectedOrigin) return null; // Let CSS handle origin
+                if (!this.showDirectOnly) return null; // Let CSS handle normal state
+                if (!DataLoader.hasDirectFlight(this.selectedOrigin, d.code)) {
+                    return 0.3;
                 }
                 return null;
             });
@@ -545,6 +569,26 @@ class MapRenderer {
             d3.select('#btn-flight-time').classed('active', false);
             this.transitionToGeographic();
         }
+
+        // Reset direct-only filter
+        if (this.showDirectOnly) {
+            this.showDirectOnly = false;
+            d3.select('#direct-only-toggle').property('checked', false);
+        }
+    }
+
+    /**
+     * Toggle the "Direct Only" filter
+     * When active, fades out airports requiring connections
+     */
+    toggleDirectOnly() {
+        if (!this.selectedOrigin) {
+            alert('Please select a starting city first');
+            return;
+        }
+
+        this.showDirectOnly = !this.showDirectOnly;
+        this.updateAirportColors();
     }
 
     /**

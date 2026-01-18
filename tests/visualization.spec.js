@@ -31,7 +31,7 @@ test.describe('Flight Time Map Visualization', () => {
         test('airports are rendered', async ({ page }) => {
             const airports = page.locator('.airport');
             const count = await airports.count();
-            expect(count).toBe(30); // Default is 30 airports
+            expect(count).toBe(150); // Default is 150 airports
         });
 
         test('control panel is visible', async ({ page }) => {
@@ -68,13 +68,13 @@ test.describe('Flight Time Map Visualization', () => {
             const directCount = await directAirports.count();
             const connectionCount = await connectionAirports.count();
 
-            expect(directCount + connectionCount).toBe(29); // All except origin
+            expect(directCount + connectionCount).toBe(149); // All except origin
         });
 
         test('clicking airport sets it as origin', async ({ page }) => {
-            // Find the first airport and click it
+            // Find a large hub airport and click it with force
             const firstAirport = page.locator('.airport').first();
-            await firstAirport.click();
+            await firstAirport.click({ force: true });
 
             // Should now have an origin
             await page.waitForSelector('.airport.origin');
@@ -139,33 +139,30 @@ test.describe('Flight Time Map Visualization', () => {
     });
 
     test.describe('Visual Style Toggle', () => {
-        test('Points Only is active by default', async ({ page }) => {
-            const pointsBtn = page.locator('#btn-points');
-            await expect(pointsBtn).toHaveClass(/active/);
-        });
-
-        test('can switch to Map Distortion mode', async ({ page }) => {
-            await page.click('#btn-rubber');
-
+        test('Map Distortion is active by default', async ({ page }) => {
             const rubberBtn = page.locator('#btn-rubber');
             await expect(rubberBtn).toHaveClass(/active/);
         });
 
-        test('Map Distortion shows ghost overlay', async ({ page }) => {
-            await page.click('#btn-rubber');
+        test('can switch to Points Only mode', async ({ page }) => {
+            await page.click('#btn-points');
 
-            // Ghost states should be rendered
+            const pointsBtn = page.locator('#btn-points');
+            await expect(pointsBtn).toHaveClass(/active/);
+        });
+
+        test('Map Distortion shows ghost overlay by default', async ({ page }) => {
+            // Ghost states should be rendered by default
             const ghostStates = page.locator('.state-ghost');
             const count = await ghostStates.count();
             expect(count).toBeGreaterThan(40);
         });
 
-        test('switching back to Points Only hides ghost overlay', async ({ page }) => {
-            // Switch to Map Distortion
-            await page.click('#btn-rubber');
+        test('switching to Points Only hides ghost overlay', async ({ page }) => {
+            // Ghost overlay should exist by default
             await page.waitForSelector('.state-ghost');
 
-            // Switch back to Points Only
+            // Switch to Points Only
             await page.click('#btn-points');
 
             // Ghost states should be gone
@@ -178,39 +175,46 @@ test.describe('Flight Time Map Visualization', () => {
 
     test.describe('Airport Filter', () => {
         test('changing filter updates airport count', async ({ page }) => {
-            // Default is 30
+            // Default is 150
             let airports = page.locator('.airport');
-            expect(await airports.count()).toBe(30);
+            expect(await airports.count()).toBe(150);
 
-            // Change to 50
-            await page.selectOption('#airport-filter', '50');
+            // Change to 69 (Major + Regional)
+            await page.selectOption('#airport-filter', '69');
             await page.waitForTimeout(500);
 
             airports = page.locator('.airport');
-            expect(await airports.count()).toBe(50);
+            expect(await airports.count()).toBe(69);
         });
 
-        test('can show 100 airports', async ({ page }) => {
-            await page.selectOption('#airport-filter', '100');
+        test('can show all 315 airports', async ({ page }) => {
+            await page.selectOption('#airport-filter', '315');
             await page.waitForTimeout(500);
 
             const airports = page.locator('.airport');
-            expect(await airports.count()).toBe(100);
+            expect(await airports.count()).toBe(315);
         });
     });
 
     test.describe('Tooltips', () => {
         test('tooltip appears on airport hover', async ({ page }) => {
-            const airport = page.locator('.airport').first();
-            await airport.hover();
+            // Use a large hub that's easier to hover
+            await page.selectOption('#origin-select', 'ATL');
+            await page.waitForSelector('.airport.origin');
+
+            const airport = page.locator('.airport.origin');
+            await airport.hover({ force: true });
 
             const tooltip = page.locator('#tooltip');
             await expect(tooltip).not.toHaveClass(/hidden/);
         });
 
         test('tooltip shows airport name and code', async ({ page }) => {
-            const airport = page.locator('.airport').first();
-            await airport.hover();
+            await page.selectOption('#origin-select', 'ORD');
+            await page.waitForSelector('.airport.origin');
+
+            const airport = page.locator('.airport.origin');
+            await airport.hover({ force: true });
 
             const tooltip = page.locator('#tooltip');
             const text = await tooltip.textContent();
@@ -223,9 +227,9 @@ test.describe('Flight Time Map Visualization', () => {
             await page.selectOption('#origin-select', 'LAX');
             await page.waitForSelector('.airport.origin');
 
-            // Hover over a non-origin airport
+            // Hover over a direct airport using force
             const directAirport = page.locator('.airport.direct').first();
-            await directAirport.hover();
+            await directAirport.hover({ force: true });
 
             const tooltip = page.locator('#tooltip');
             const text = await tooltip.textContent();
@@ -236,8 +240,11 @@ test.describe('Flight Time Map Visualization', () => {
         });
 
         test('tooltip hides when mouse leaves airport', async ({ page }) => {
-            const airport = page.locator('.airport').first();
-            await airport.hover();
+            await page.selectOption('#origin-select', 'JFK');
+            await page.waitForSelector('.airport.origin');
+
+            const airport = page.locator('.airport.origin');
+            await airport.hover({ force: true });
 
             // Move away
             await page.mouse.move(0, 0);
@@ -251,9 +258,9 @@ test.describe('Flight Time Map Visualization', () => {
             await page.selectOption('#origin-select', 'DEN');
             await page.waitForSelector('.airport.origin');
 
-            // Hover over a different airport
+            // Hover over a different airport with force
             const targetAirport = page.locator('.airport.direct').first();
-            await targetAirport.hover();
+            await targetAirport.hover({ force: true });
 
             // Curved line should appear
             const hoverLine = page.locator('.hover-line');
@@ -269,7 +276,7 @@ test.describe('Flight Time Map Visualization', () => {
             await page.waitForSelector('.airport.origin');
 
             const targetAirport = page.locator('.airport.direct').first();
-            await targetAirport.hover();
+            await targetAirport.hover({ force: true });
 
             // Line should be visible
             await expect(page.locator('.hover-line')).toBeVisible();
@@ -290,7 +297,7 @@ test.describe('Flight Time Map Visualization', () => {
 
             // Hover over the origin itself
             const originAirport = page.locator('.airport.origin');
-            await originAirport.hover();
+            await originAirport.hover({ force: true });
 
             // No line should appear (can't connect origin to itself)
             const hoverLines = page.locator('.hover-line');

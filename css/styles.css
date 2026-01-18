@@ -119,6 +119,61 @@ select:focus {
     border-color: #2c7be5;
 }
 
+/* View controls row */
+.view-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Toggle switch */
+.switch {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.switch input {
+    display: none;
+}
+
+.slider {
+    width: 36px;
+    height: 20px;
+    background: #ccc;
+    border-radius: 20px;
+    position: relative;
+    transition: background 0.2s ease;
+}
+
+.slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s ease;
+}
+
+.switch input:checked + .slider {
+    background: #2c7be5;
+}
+
+.switch input:checked + .slider::before {
+    transform: translateX(16px);
+}
+
+.switch-label {
+    font-size: 0.9rem;
+    color: #333;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
 /* Main visualization container */
 #visualization-container {
     flex: 1;

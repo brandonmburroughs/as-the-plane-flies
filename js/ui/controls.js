@@ -20,6 +20,7 @@ class Controls {
     init() {
         this.populateOriginSelect();
         this.initModeToggles();
+        this.initDirectOnlyToggle();
         this.initStyleToggles();
         this.initAirportFilter();
         this.initZoomControls();
@@ -95,6 +96,22 @@ class Controls {
             }
             this.setActiveButton(btnFlightTime, btnDistance);
             this.renderer.setMode('flightTime');
+        });
+    }
+
+    /**
+     * Initialize Direct Only toggle switch
+     */
+    initDirectOnlyToggle() {
+        const toggle = d3.select('#direct-only-toggle');
+
+        toggle.on('change', () => {
+            if (!this.renderer.selectedOrigin) {
+                this.showMessage('Please select a starting city first');
+                toggle.property('checked', false);
+                return;
+            }
+            this.renderer.toggleDirectOnly();
         });
     }
 

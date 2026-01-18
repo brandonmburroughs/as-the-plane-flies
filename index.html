@@ -37,17 +37,25 @@
                 <div class="control-group">
                     <label for="airport-filter">Show Airports:</label>
                     <select id="airport-filter">
-                        <option value="30">Top 30</option>
-                        <option value="50">Top 50</option>
-                        <option value="100">All 100</option>
+                        <option value="32">Major Hubs (32)</option>
+                        <option value="69">Major + Regional (69)</option>
+                        <option value="150" selected>With Small Cities (150)</option>
+                        <option value="315">All Airports (315)</option>
                     </select>
                 </div>
 
                 <div class="control-group">
                     <label>View Controls:</label>
-                    <div class="toggle-buttons">
-                        <button id="btn-reset-zoom" class="toggle-btn">Reset View</button>
-                        <button id="btn-fit-airports" class="toggle-btn">Fit All</button>
+                    <div class="view-controls-row">
+                        <div class="toggle-buttons">
+                            <button id="btn-reset-zoom" class="toggle-btn">Reset View</button>
+                            <button id="btn-fit-airports" class="toggle-btn">Fit All</button>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="direct-only-toggle">
+                            <span class="slider"></span>
+                            <span class="switch-label">Direct Only</span>
+                        </label>
                     </div>
                 </div>
             </div>

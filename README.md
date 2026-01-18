@@ -37,8 +37,8 @@ Geographic distance doesn't equal travel time. A city 500 miles away might be qu
 
 Flight times are calculated from real Bureau of Transportation Statistics (BTS) On-Time Performance data:
 - 10 months of data (January–October 2024)
-- ~4.7 million flights processed
-- Top 100 US airports (excluding Hawaii, Alaska, Puerto Rico)
+- ~5.5 million flights processed
+- 315 continental US airports (excluding Hawaii, Alaska, Puerto Rico)
 - Times represent gate-to-gate duration for direct flights
 - Connection times estimated using shortest path through major hubs
 
