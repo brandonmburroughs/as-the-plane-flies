@@ -148,7 +148,7 @@
         ></iframe>
         <p class="caption">The standard geographic view - airports positioned by their physical location.</p>
         
-        <p>When you look at a map of the US, the distance between cities on the map corresponds to the physical distance.  But the ability to fly directly between specific cities shrinks the country considerably.  This has interesting affect, shrinking the country from the perspecitive of one city, while streching it out from the perspective of another.  Let's take a look at a few examples.</p>
+        <p>When you look at a map of the US, the distance between cities on the map corresponds to the physical distance.  But the ability to fly directly between specific cities shrinks the country considerably.  This has an interesting effect, shrinking the country from the perspective of one city, while stretching it out from the perspective of another.  Let's take a look at a few examples.</p>
 
         <section>
             <h2>Dallas (DFW)</h2>
@@ -180,7 +180,7 @@
 
         <section>
             <h2>Austin (AUS)</h2>
-            <p>Austin, with its mid-sized airport and direct flights to major cities, the coasts become close.  But many mid-sized or smaller cities requrie connections and remain far away.</p>
+            <p>Austin, with its mid-sized airport and direct flights to major cities, the coasts become close.  But many mid-sized or smaller cities require connections and remain far away.</p>
             <iframe
                 class="map-embed"
                 src="map.html?origin=AUS&mode=flightTime&airports=69&directOnly=true&embed=true&waitForViewport=true"
@@ -223,8 +223,8 @@
                 <li>The flight times are based upon Bureau of Transportation Statistics (BTS) data from January 2025 to October 2025.  See <a href="https://github.com/brandonmburroughs/as-the-plane-flies/blob/main/scripts/raw-data/README.md">here</a> for more info on how this data was used.</li>
                 <li>Anomalously long/short flights are filtered out of the dataset and then the average is calculated for each route.</li>
                 <li>Flights with connections use a 90 minute layover duration regardless of the connecting airport.</li>
-                <li>The "Flight Time" option calculates the ratio of actual travel time vs what would be expected based upon geogrpahic distance between the origin airport and all other airports.  If a city requires a connection to get to, the ratio will be larger, pushing that city farther away.  If there is a direct flight, the ratio will be smaller and will bring the city closer.</li>
-                <li>This doesn't take into account some real world considerations such as the airport size (e.g. larger airports likely have more options), multiple airports in one city (e.g. the Bay Area has SFO and SJC, you could combine the flights into one), or different comfort levels with short/long layovers depeneding upon airport (e.g. I know DFW well and can tolerate a short layover).  I'll leave these as an exercise to the reader.</li>
+                <li>The "Flight Time" option calculates the ratio of actual travel time vs what would be expected based upon geographic distance between the origin airport and all other airports.  If a city requires a connection to get to, the ratio will be larger, pushing that city farther away.  If there is a direct flight, the ratio will be smaller and will bring the city closer.</li>
+                <li>This doesn't take into account some real world considerations such as the airport size (e.g. larger airports likely have more options), multiple airports in one city (e.g. the Bay Area has SFO and SJC, you could combine the flights into one), or different comfort levels with short/long layovers depending upon airport (e.g. I know DFW well and can tolerate a short layover).  I'll leave these as an exercise to the reader.</li>
             </ul>
         </section>      
 
