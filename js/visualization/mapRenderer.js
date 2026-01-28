@@ -13,13 +13,17 @@ class MapRenderer {
         this.containerId = containerId;
         this.container = d3.select(`#${containerId}`);
 
-        // Dimensions
-        this.width = CONFIG.width;
-        this.height = CONFIG.height;
+        // Get actual container dimensions
+        const containerNode = this.container.node();
+        const rect = containerNode.getBoundingClientRect();
+        this.width = rect.width || CONFIG.width;
+        this.height = rect.height || CONFIG.height;
 
-        // Map projection
+        // Map projection - scale based on container size
+        const baseScale = 1300;
+        const scaleFactor = Math.min(this.width / CONFIG.width, this.height / CONFIG.height);
         this.projection = d3.geoAlbersUsa()
-            .scale(1300)
+            .scale(baseScale * scaleFactor)
             .translate([this.width / 2, this.height / 2]);
         this.pathGenerator = d3.geoPath().projection(this.projection);
 
@@ -29,6 +33,7 @@ class MapRenderer {
         this.selectedOrigin = null;
         this.airportFilter = CONFIG.defaults.airportCount;
         this.showDirectOnly = false;
+        this.embedMode = false;
 
         // Data
         this.usMap = null;
@@ -146,7 +151,6 @@ class MapRenderer {
         this.svg = this.container.append('svg')
             .attr('width', this.width)
             .attr('height', this.height)
-            .attr('viewBox', `0 0 ${this.width} ${this.height}`)
             .style('background', CONFIG.colors.background);
 
         // Create zoom behavior
@@ -196,16 +200,36 @@ class MapRenderer {
      */
     renderStates() {
         const states = topojson.feature(this.usMap, this.usMap.objects.states);
-        // Filter out Alaska (02), Hawaii (15), and Puerto Rico (72)
-        const excludedFips = ['02', '15', '72'];
+        // Filter out Alaska (02), Hawaii (15), Northern Mariana Islands (69), and Puerto Rico (72)
+        const excludedFips = ['02', '15', '69', '72'];
         const filteredStates = states.features.filter(
             f => !excludedFips.includes(f.id)
         );
 
+        // FIPS to state name mapping
+        const fipsToState = {
+            '01': 'Alabama', '04': 'Arizona', '05': 'Arkansas', '06': 'California',
+            '08': 'Colorado', '09': 'Connecticut', '10': 'Delaware', '11': 'DC',
+            '12': 'Florida', '13': 'Georgia', '16': 'Idaho', '17': 'Illinois',
+            '18': 'Indiana', '19': 'Iowa', '20': 'Kansas', '21': 'Kentucky',
+            '22': 'Louisiana', '23': 'Maine', '24': 'Maryland', '25': 'Massachusetts',
+            '26': 'Michigan', '27': 'Minnesota', '28': 'Mississippi', '29': 'Missouri',
+            '30': 'Montana', '31': 'Nebraska', '32': 'Nevada', '33': 'New Hampshire',
+            '34': 'New Jersey', '35': 'New Mexico', '36': 'New York', '37': 'North Carolina',
+            '38': 'North Dakota', '39': 'Ohio', '40': 'Oklahoma', '41': 'Oregon',
+            '42': 'Pennsylvania', '44': 'Rhode Island', '45': 'South Carolina',
+            '46': 'South Dakota', '47': 'Tennessee', '48': 'Texas', '49': 'Utah',
+            '50': 'Vermont', '51': 'Virginia', '53': 'Washington', '54': 'West Virginia',
+            '55': 'Wisconsin', '56': 'Wyoming', '60': 'American Samoa', '66': 'Guam',
+            '69': 'Northern Mariana Islands', '72': 'Puerto Rico', '78': 'US Virgin Islands'
+        };
+
         this.mapLayer.selectAll('.state')
-            .data(filteredStates)
+            .data(filteredStates, d => d.id)
             .join('path')
             .attr('class', 'state')
+            .attr('data-fips', d => d.id)
+            .attr('data-state', d => fipsToState[d.id] || d.id)
             .attr('d', this.pathGenerator);
     }
 
@@ -214,8 +238,8 @@ class MapRenderer {
      */
     renderGhostStates() {
         const states = topojson.feature(this.usMap, this.usMap.objects.states);
-        // Filter out Alaska (02), Hawaii (15), and Puerto Rico (72)
-        const excludedFips = ['02', '15', '72'];
+        // Filter out Alaska (02), Hawaii (15), Northern Mariana Islands (69), and Puerto Rico (72)
+        const excludedFips = ['02', '15', '69', '72'];
         const filteredStates = states.features.filter(
             f => !excludedFips.includes(f.id)
         );
@@ -240,8 +264,14 @@ class MapRenderer {
     renderAirports() {
         const self = this;
 
+        // Sort so larger airports render on top (last)
+        const hubOrder = { 'small': 0, 'medium': 1, 'large': 2 };
+        const sortedPositions = [...this.geoPositions].sort((a, b) =>
+            (hubOrder[a.hub] || 0) - (hubOrder[b.hub] || 0)
+        );
+
         const airports = this.airportsLayer.selectAll('.airport')
-            .data(this.geoPositions, d => d.code);
+            .data(sortedPositions, d => d.code);
 
         airports.exit().remove();
 
@@ -252,6 +282,9 @@ class MapRenderer {
             .attr('cx', d => d.x)
             .attr('cy', d => d.y)
             .on('click', function(event, d) {
+                // Disable click-to-select in embed mode
+                if (self.embedMode) return;
+
                 // Toggle: click again to deselect
                 if (self.selectedOrigin === d.code) {
                     self.clearOrigin();
@@ -525,8 +558,8 @@ class MapRenderer {
         // Update label visibility
         this.updateLabelVisibility();
 
-        // Update legend
-        if (window.legend) {
+        // Update legend (skip in embed mode)
+        if (window.legend && typeof window.legend.updateForOrigin === 'function') {
             const times = DataLoader.getMatrixRow(airportCode);
             window.legend.updateForOrigin(airportCode, times, this.geoPositions);
         }
@@ -557,8 +590,8 @@ class MapRenderer {
         // Update labels
         this.renderLabels();
 
-        // Clear legend
-        if (window.legend) {
+        // Clear legend (skip in embed mode)
+        if (window.legend && typeof window.legend.clearTimeScale === 'function') {
             window.legend.clearTimeScale();
         }
 
@@ -865,8 +898,11 @@ class MapRenderer {
         const minY = Math.min(...yValues);
         const maxY = Math.max(...yValues);
 
-        const padding = 50;
-        const boxWidth = maxX - minX + padding * 2;
+        const padding = 100;
+        const isEmbed = this.embedMode === true;
+        // Extra right padding for legend on main map
+        const rightPadding = isEmbed ? padding : 250;
+        const boxWidth = maxX - minX + padding + rightPadding;
         const boxHeight = maxY - minY + padding * 2;
 
         const scale = Math.min(
@@ -875,7 +911,8 @@ class MapRenderer {
             2 // Max scale
         );
 
-        const centerX = (minX + maxX) / 2;
+        // Offset center left on main map to avoid legend
+        const centerX = (minX + maxX) / 2 + (isEmbed ? 0 : 50);
         const centerY = (minY + maxY) / 2;
 
         const transform = d3.zoomIdentity

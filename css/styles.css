@@ -185,8 +185,7 @@ select:focus {
 }
 
 #visualization-container svg {
-    max-width: 100%;
-    height: auto;
+    display: block;
 }
 
 /* Map styles */
@@ -449,4 +448,106 @@ select:focus {
         padding: 0.4rem 0.75rem;
         font-size: 0.8rem;
     }
+}
+
+/* Embed mode styles */
+.embed-mode .controls-panel h1,
+.embed-mode .controls-panel .help-text,
+.embed-mode #origin-control,
+.embed-mode #visual-style-control,
+.embed-mode #airport-filter-control,
+.embed-mode #view-controls {
+    display: none;
+}
+
+.embed-mode .controls-panel {
+    padding: 0.5rem 1rem;
+}
+
+.embed-mode .controls-row {
+    justify-content: center;
+}
+
+.embed-mode .info-panel #legend {
+    display: none;
+}
+
+.embed-mode .info-panel {
+    pointer-events: none;
+}
+
+.embed-mode .info-panel #tooltip {
+    pointer-events: auto;
+}
+
+.embed-mode .airport {
+    cursor: default;
+}
+
+/* Minimal legend for embed mode */
+.embed-legend {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.embed-legend-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.embed-legend-items {
+    display: flex;
+    gap: 12px;
+}
+
+.embed-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #666;
+}
+
+.embed-legend-item .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.embed-legend-item .dot.direct {
+    background: #f4a261;
+}
+
+.embed-legend-item .dot.connection {
+    background: #fff;
+    border: 2px solid #f4a261;
+}
+
+/* Reset button for embed mode */
+.embed-reset-btn {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #666;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.embed-reset-btn:hover {
+    background: #f0f4f8;
+    color: #333;
+    border-color: #2c7be5;
 }

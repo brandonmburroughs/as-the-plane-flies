@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 
 test.describe('Flight Time Map Visualization', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('/');
+        await page.goto('/map.html');
         // Wait for the visualization to load
         await page.waitForSelector('svg', { timeout: 10000 });
         // Wait for airports to render

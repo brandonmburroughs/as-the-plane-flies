@@ -62,6 +62,10 @@ class RubberSheetMode {
         // Animate airports to new positions
         this.renderer.transitionManager.transition(targetPositions, () => {
             this.renderer.currentPositions = targetPositions;
+            // Fit to view after morph completes (main map only)
+            if (!this.renderer.embedMode) {
+                this.renderer.fitToAirports();
+            }
         });
 
         // Morph the states along with the airports
@@ -75,14 +79,14 @@ class RubberSheetMode {
         const self = this;
         const renderer = this.renderer;
         const states = topojson.feature(renderer.usMap, renderer.usMap.objects.states);
-        // Filter out Alaska (02), Hawaii (15), and Puerto Rico (72)
-        const excludedFips = ['02', '15', '72'];
+        // Filter out Alaska (02), Hawaii (15), Northern Mariana Islands (69), and Puerto Rico (72)
+        const excludedFips = ['02', '15', '69', '72'];
         const filteredStates = states.features.filter(
             f => !excludedFips.includes(f.id)
         );
 
         renderer.mapLayer.selectAll('.state')
-            .data(filteredStates)
+            .data(filteredStates, d => d.id)
             .transition()
             .duration(CONFIG.transitionDuration)
             .ease(CONFIG.transitionEase)
@@ -183,14 +187,14 @@ class RubberSheetMode {
     transitionToGeographic() {
         const renderer = this.renderer;
         const states = topojson.feature(renderer.usMap, renderer.usMap.objects.states);
-        // Filter out Alaska (02), Hawaii (15), and Puerto Rico (72)
-        const excludedFips = ['02', '15', '72'];
+        // Filter out Alaska (02), Hawaii (15), Northern Mariana Islands (69), and Puerto Rico (72)
+        const excludedFips = ['02', '15', '69', '72'];
         const filteredStates = states.features.filter(
             f => !excludedFips.includes(f.id)
         );
 
         renderer.mapLayer.selectAll('.state')
-            .data(filteredStates)
+            .data(filteredStates, d => d.id)
             .transition()
             .duration(CONFIG.transitionDuration)
             .ease(CONFIG.transitionEase)

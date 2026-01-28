@@ -196,10 +196,6 @@ class Controls {
      */
     initZoomControls() {
         d3.select('#btn-reset-zoom').on('click', () => {
-            this.renderer.resetZoom();
-        });
-
-        d3.select('#btn-fit-airports').on('click', () => {
             this.renderer.fitToAirports();
         });
     }

@@ -3,90 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>As The Plane Flies - US Flight Time Map</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>As The Plane Flies - Visualizing Flight Time vs Distance</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        article {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c7be5;
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .intro {
+            font-size: 1.2rem;
+            color: #555;
+        }
+
+        section {
+            margin: 2.5rem 0;
+        }
+
+        .map-embed {
+            width: 100%;
+            height: 650px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .cta {
+            text-align: center;
+            margin: 3rem 0;
+            padding: 2rem;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .cta a {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: #2c7be5;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: background 0.2s ease;
+        }
+
+        .cta a:hover {
+            background: #1a68d1;
+        }
+
+        .caption {
+            font-size: 0.9rem;
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <header class="controls-panel">
-            <h1>As The Plane Flies</h1>
-            <div class="controls-row">
-                <div class="control-group">
-                    <label for="origin-select">Starting City:</label>
-                    <select id="origin-select">
-                        <option value="">Select an airport...</option>
-                    </select>
-                </div>
+    <article>
+        <h1>As The Plane Flies - Visualizing Flight Time vs Distance</h1>
+        <h3>By Brandon M. Burroughs</h3>
+        <br>
 
-                <div class="control-group">
-                    <label>View Mode:</label>
-                    <div class="toggle-buttons">
-                        <button id="btn-distance" class="toggle-btn active">Geographic Distance</button>
-                        <button id="btn-flight-time" class="toggle-btn">Flight Time</button>
-                    </div>
-                </div>
+        <p>Many years ago, I was flying from Washington, DC to Shreveport, LA (my hometown) to visit family.  Shreveport has a small airport (SHV) that almost always requires connecting through DFW, IAH, or ATL.  Connections are often awkwardly timed; you get to choose between a <1 hour mad dash or a 2-3 hour trial of patience before taking the ~1 hour flight to SHV.  As I was wandering through the various terminals of DFW, looking at all the places I could be going, I began to think about distance as a function of miles vs hours.  While DCA is ~150 miles closer to SHV than DFW, it takes an extra 2-4 hours to get to SHV due to the connection through DFW.  DFW is super connected while SHV is a bit of an island.</p>
 
-                <div class="control-group">
-                    <label>Visual Style:</label>
-                    <div class="toggle-buttons">
-                        <button id="btn-rubber" class="toggle-btn active">Map Distortion</button>
-                        <button id="btn-points" class="toggle-btn">Points Only</button>
-                    </div>
-                </div>
+        <iframe
+            class="map-embed"
+            src="map.html?embed=true"
+            title="Geographic view of US airports"
+            loading="lazy"
+            scrolling="no"
+            style="overflow: hidden;"
+        ></iframe>
+        <p class="caption">The standard geographic view - airports positioned by their physical location.</p>
+        
+        <p>When you look at a map of the US, the distance between cities on the map corresponds to the physical distance.  But the ability to fly directly between specific cities shrinks the country considerably.  This has interesting affect, shrinking the country from the perspecitive of one city, while streching it out from the perspective of another.  Let's take a look at a few examples.</p>
 
-                <div class="control-group">
-                    <label for="airport-filter">Show Airports:</label>
-                    <select id="airport-filter">
-                        <option value="32">Major Hubs (32)</option>
-                        <option value="69">Major + Regional (69)</option>
-                        <option value="150" selected>With Small Cities (150)</option>
-                        <option value="315">All Airports (315)</option>
-                    </select>
-                </div>
+        <section>
+            <h2>Dallas (DFW)</h2>
+            <p>As the largest American Airlines hub, Dallas is a super-connected city, effectively shrinking most of the country towards it.  The coasts are closer, the middle of the country is closer, and there are many direct flights available.</p>
+            <iframe
+                class="map-embed"
+                src="map.html?origin=DFW&amp;embed=true&amp;waitForViewport=true"
+                title="Flight times from Dallas/Fort Worth"
+                loading="lazy"
+                scrolling="no"
+                style="overflow: hidden;"
+            ></iframe>
+            <p class="caption">Toggle between Geographic Distance and Flight Time to see the difference.</p>
+        </section>
 
-                <div class="control-group">
-                    <label>View Controls:</label>
-                    <div class="view-controls-row">
-                        <div class="toggle-buttons">
-                            <button id="btn-reset-zoom" class="toggle-btn">Reset View</button>
-                            <button id="btn-fit-airports" class="toggle-btn">Fit All</button>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="direct-only-toggle">
-                            <span class="slider"></span>
-                            <span class="switch-label">Direct Only</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div class="help-text">Scroll to zoom, drag to pan. Click an airport to select it as origin.</div>
-        </header>
+        <section>
+            <h2>Shreveport (SHV)</h2>
+            <p>With a small airport, Shreveport is a bit of an isolated island when it comes to flying.  Most of the country is just as far away, if not farther.  Many "nearby" areas with a direct flight aren't much closer by flight than driving.</p>
+            <iframe
+                class="map-embed"
+                src="map.html?origin=SHV&amp;embed=true&amp;waitForViewport=true"
+                title="Flight times from Shreveport"
+                loading="lazy"
+                scrolling="no"
+                style="overflow: hidden;"
+            ></iframe>
+            <p class="caption">Toggle between Geographic Distance and Flight Time to see the difference.</p>
+        </section>
 
-        <main id="visualization-container"></main>
+        <section>
+            <h2>Austin (AUS)</h2>
+            <p>Austin, with it's mid-sized airport, is a bit of an in-between.  With it's direct flights to major cities, especially those on the coasts, the coasts are closer while much of the middle part of the country remains just as far away.</p>
+            <iframe
+                class="map-embed"
+                src="map.html?origin=AUS&amp;embed=true&amp;waitForViewport=true"
+                title="Flight times from Austin"
+                loading="lazy"
+                scrolling="no"
+                style="overflow: hidden;"
+            ></iframe>
+            <p class="caption">Toggle between Geographic Distance and Flight Time to see the difference.</p>
+        </section>
 
-        <aside class="info-panel">
-            <div id="tooltip" class="tooltip hidden"></div>
-            <div id="legend"></div>
-        </aside>
-    </div>
+        <section>
+            <h2>San Francisco (SFO)</h2>
+            <p>San Francisco is similar to DFW, making the East Coast much closer than it would seem.</p>
+            <iframe
+                class="map-embed"
+                src="map.html?origin=SFO&amp;embed=true&amp;waitForViewport=true"
+                title="Flight times from San Francisco"
+                loading="lazy"
+                scrolling="no"
+                style="overflow: hidden;"
+            ></iframe>
+            <p class="caption">Toggle between Geographic Distance and Flight Time to see the difference.</p>
+        </section>
 
-    <!-- Dependencies -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://unpkg.com/topojson-client@3"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
-    <script src="https://unpkg.com/d3-interpolate-path@2.3.0/build/d3-interpolate-path.min.js"></script>
+        <section>
+            <h2>Conclusion</h2>
+            <p>I often lament the fact that my family doesn't live near a larger airport as it would make visiting them much easier.  Creating this visualization has helped put a picture to what I knew from many years of experience.  Given that my family isn't likely to move, I've at least learned how to travel well and make the most of my time in DFW.</p>
+        </section>
 
-    <!-- Application modules -->
-    <script src="js/config.js"></script>
-    <script src="js/data/dataLoader.js"></script>
-    <script src="js/algorithms/mds.js"></script>
-    <script src="js/algorithms/meshDeformer.js"></script>
-    <script src="js/visualization/mapRenderer.js"></script>
-    <script src="js/visualization/pointsMode.js"></script>
-    <script src="js/visualization/rubberSheetMode.js"></script>
-    <script src="js/visualization/transitionManager.js"></script>
-    <script src="js/ui/controls.js"></script>
-    <script src="js/ui/legend.js"></script>
-    <script src="js/app.js"></script>
+        <div class="cta">
+            <p>Want to explore from your own city?</p>
+            <a href="map.html" target="_blank">Explore the Full Interactive Map</a>
+        </div>
+
+        <section>
+            <h2>How This Came To Be</h2>
+            <p>This idea occurred to me nearly ten years ago, but I never took the time to figure out how to make it work.  At the time, I knew enough JS/D3/Math to create the map visualization and think through the map morph, but I never got too far and shelved the project.</p>
+            <p>Now living in the Bay Area, I take many flights from SFO to SHV and have been thinking of this idea again.  In those ten years, coding tools like Claude Code have exploded and made it easier to build things.  Claude and I created a spec based upon my idea and went to work.  There was some back and forth and a bit of manual tweaking of the data collection/visualization parameters, but 99.9% of the code was written by Claude.  It's amazing what is within reach with these tools.</p>
+        </section>
+
+    </article>
+
+    <script>
+        // Trigger morph animation when iframe enters viewport
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const iframe = entry.target;
+                    // Wait a bit for iframe to fully load, then trigger morph
+                    setTimeout(() => {
+                        try {
+                            if (iframe.contentWindow && iframe.contentWindow.startMorph) {
+                                iframe.contentWindow.startMorph();
+                            }
+                        } catch (e) {
+                            console.log('Could not trigger morph:', e);
+                        }
+                    }, 500);
+                    // Only trigger once
+                    observer.unobserve(iframe);
+                }
+            });
+        }, { threshold: 0.3 });
+
+        // Observe all iframes with waitForViewport
+        document.querySelectorAll('iframe.map-embed').forEach(iframe => {
+            if (iframe.src.includes('waitForViewport=true')) {
+                observer.observe(iframe);
+            }
+        });
+    </script>
 </body>
 </html>
