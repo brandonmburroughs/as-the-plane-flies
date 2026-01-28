@@ -265,10 +265,14 @@ class MapRenderer {
         const self = this;
 
         // Sort so larger airports render on top (last)
+        // First by hub size, then by rank (lower rank = bigger airport = render on top)
         const hubOrder = { 'small': 0, 'medium': 1, 'large': 2 };
-        const sortedPositions = [...this.geoPositions].sort((a, b) =>
-            (hubOrder[a.hub] || 0) - (hubOrder[b.hub] || 0)
-        );
+        const sortedPositions = [...this.geoPositions].sort((a, b) => {
+            const hubDiff = (hubOrder[a.hub] || 0) - (hubOrder[b.hub] || 0);
+            if (hubDiff !== 0) return hubDiff;
+            // Within same hub category, sort by rank descending (lower rank renders last/on top)
+            return (b.rank || 999) - (a.rank || 999);
+        });
 
         const airports = this.airportsLayer.selectAll('.airport')
             .data(sortedPositions, d => d.code);

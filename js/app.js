@@ -79,6 +79,7 @@ async function initApp() {
         mapRenderer = new MapRenderer('visualization-container');
         mapRenderer.embedMode = embedMode; // Pass embed mode flag
         await mapRenderer.init();
+        window.mapRenderer = mapRenderer; // Expose for external access
 
         // Initialize UI controls
         controls = new Controls(mapRenderer);

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#fff"/>
+  <!-- Top-down airplane view -->
+  <g fill="#2c7be5" transform="rotate(-45, 16, 16)">
+    <!-- Body -->
+    <path d="M16,4 Q18,4 18,6 L18,24 Q18,28 16,28 Q14,28 14,24 L14,6 Q14,4 16,4 Z"/>
+    <!-- Main wings -->
+    <path d="M16,12 L28,16 L28,18 L16,15 Z"/>
+    <path d="M16,12 L4,16 L4,18 L16,15 Z"/>
+    <!-- Tail wings -->
+    <path d="M16,24 L22,26 L22,27 L16,25.5 Z"/>
+    <path d="M16,24 L10,26 L10,27 L16,25.5 Z"/>
+  </g>
+</svg>
