@@ -139,7 +139,8 @@ async function initApp() {
         }
 
         // 4. Apply view mode (requires origin to be set for flightTime)
-        if (urlParams.mode === 'flightTime' && mapRenderer.selectedOrigin) {
+        // Skip if waitForViewport is set — embed mode handles the timing
+        if (urlParams.mode === 'flightTime' && mapRenderer.selectedOrigin && !urlParams.waitForViewport) {
             mapRenderer.setMode('flightTime');
             d3.select('#btn-distance').classed('active', false);
             d3.select('#btn-flight-time').classed('active', true);
