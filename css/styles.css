@@ -193,6 +193,7 @@ select:focus {
     fill: #e8f4f8;
     stroke: #b8d4e3;
     stroke-width: 1px;
+    opacity: 1.0;
 }
 
 .state:hover {

@@ -10,45 +10,65 @@ let controls = null;
 let legend = null;
 
 /**
+ * Get URL parameters
+ */
+function getURLParams() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+        origin: params.get('origin'),
+        embed: params.get('embed') === 'true',
+        waitForViewport: params.get('waitForViewport') === 'true',
+        mode: params.get('mode'), // 'geographic' or 'flightTime'
+        airports: params.get('airports') ? parseInt(params.get('airports'), 10) : null, // 32, 69, 150, 315
+        directOnly: params.get('directOnly') === 'true'
+    };
+}
+
+/**
  * Get origin from URL query parameter
  */
 function getOriginFromURL() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('origin');
+    return getURLParams().origin;
 }
 
 /**
  * Check if embed mode is enabled via URL parameter
  */
 function isEmbedMode() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('embed') === 'true';
+    return getURLParams().embed;
 }
 
 /**
  * Check if we should wait for viewport visibility before morphing
  */
 function shouldWaitForViewport() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('waitForViewport') === 'true';
+    return getURLParams().waitForViewport;
 }
 
 /**
- * Update URL with current origin (without page reload)
+ * Update URL with current state (without page reload)
  * Skip in embed mode to preserve iframe URL params
  */
-function updateURL(originCode) {
+function updateURL(key, value) {
     // Don't modify URL in embed mode
     if (isEmbedMode()) return;
 
     const url = new URL(window.location);
-    if (originCode) {
-        url.searchParams.set('origin', originCode);
+
+    if (value !== null && value !== undefined && value !== '') {
+        url.searchParams.set(key, value);
     } else {
-        url.searchParams.delete('origin');
+        url.searchParams.delete(key);
     }
+
+    // Clean up default values to keep URL tidy
+    if (key === 'mode' && value === 'geographic') url.searchParams.delete('mode');
+    if (key === 'airports' && value === 150) url.searchParams.delete('airports');
+    if (key === 'directOnly' && value === false) url.searchParams.delete('directOnly');
+
     window.history.replaceState({}, '', url);
 }
+
 
 /**
  * Initialize the application
@@ -96,19 +116,42 @@ async function initApp() {
             if (legendEl) legendEl.style.display = 'none';
         }
 
-        // Check for origin in URL
-        const urlOrigin = getOriginFromURL();
-        if (urlOrigin && mapRenderer.allAirports.some(a => a.code === urlOrigin)) {
-            mapRenderer.setOrigin(urlOrigin);
+        // Apply URL parameters in correct order
+        const urlParams = getURLParams();
+
+        // 1. Apply airport filter first (affects which airports are visible)
+        if (urlParams.airports && [32, 69, 150, 315].includes(urlParams.airports)) {
+            d3.select('#airport-filter').property('value', urlParams.airports);
+            mapRenderer.applyAirportFilter(urlParams.airports);
+            mapRenderer.render();
+        }
+
+        // 2. Set origin (must be after airport filter)
+        if (urlParams.origin && mapRenderer.allAirports.some(a => a.code === urlParams.origin)) {
+            mapRenderer.setOrigin(urlParams.origin);
+        }
+
+        // 3. Apply direct only (before mode change)
+        if (urlParams.directOnly && mapRenderer.selectedOrigin) {
+            mapRenderer.showDirectOnly = true;
+            d3.select('#direct-only-toggle').property('checked', true);
+            mapRenderer.updateAirportColors();
+        }
+
+        // 4. Apply view mode (requires origin to be set for flightTime)
+        if (urlParams.mode === 'flightTime' && mapRenderer.selectedOrigin) {
+            mapRenderer.setMode('flightTime');
+            d3.select('#btn-distance').classed('active', false);
+            d3.select('#btn-flight-time').classed('active', true);
         }
 
         // In embed mode, fit to airports and handle display
         if (embedMode) {
             const waitForViewport = shouldWaitForViewport();
 
-            if (urlOrigin) {
+            if (urlParams.origin) {
                 // Add minimal legend for embed mode
-                const originAirport = mapRenderer.allAirports.find(a => a.code === urlOrigin);
+                const originAirport = mapRenderer.allAirports.find(a => a.code === urlParams.origin);
                 if (originAirport) {
                     const miniLegend = d3.select('body').append('div')
                         .attr('class', 'embed-legend')
@@ -156,7 +199,7 @@ async function initApp() {
                 });
 
             // Fit view after load/animation
-            const delay = urlOrigin ? 1600 : 500;
+            const delay = urlParams.origin ? 1600 : 500;
             setTimeout(() => {
                 mapRenderer.fitToAirports();
             }, delay);

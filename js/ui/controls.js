@@ -87,6 +87,9 @@ class Controls {
         btnDistance.on('click', () => {
             this.setActiveButton(btnDistance, btnFlightTime);
             this.renderer.setMode('geographic');
+            if (typeof updateURL === 'function') {
+                updateURL('mode', 'geographic');
+            }
         });
 
         btnFlightTime.on('click', () => {
@@ -96,6 +99,9 @@ class Controls {
             }
             this.setActiveButton(btnFlightTime, btnDistance);
             this.renderer.setMode('flightTime');
+            if (typeof updateURL === 'function') {
+                updateURL('mode', 'flightTime');
+            }
         });
     }
 
@@ -112,6 +118,9 @@ class Controls {
                 return;
             }
             this.renderer.toggleDirectOnly();
+            if (typeof updateURL === 'function') {
+                updateURL('directOnly', this.renderer.showDirectOnly);
+            }
         });
     }
 
@@ -143,6 +152,10 @@ class Controls {
             const count = parseInt(event.target.value, 10);
             this.renderer.applyAirportFilter(count);
             this.renderer.render();
+
+            if (typeof updateURL === 'function') {
+                updateURL('airports', count);
+            }
 
             // Re-populate origin select with filtered airports
             this.updateOriginSelectForFilter(count);

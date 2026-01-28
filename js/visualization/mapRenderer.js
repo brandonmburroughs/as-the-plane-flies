@@ -553,7 +553,7 @@ class MapRenderer {
 
         // Update URL for sharing
         if (typeof updateURL === 'function') {
-            updateURL(airportCode);
+            updateURL('origin', airportCode);
         }
 
         // Update airport colors
@@ -585,7 +585,7 @@ class MapRenderer {
 
         // Update URL for sharing
         if (typeof updateURL === 'function') {
-            updateURL(null);
+            updateURL('origin', null);
         }
 
         // Reset airport colors

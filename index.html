@@ -109,6 +109,25 @@
             text-align: center;
             margin-top: 0.5rem;
         }
+
+        ul {
+            margin: 1rem 0 1.5rem 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        li {
+            margin-bottom: 0.25rem;
+            padding-left: 0.5rem;
+        }
+
+        a {
+            color: #2c7be5;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -133,10 +152,10 @@
 
         <section>
             <h2>Dallas (DFW)</h2>
-            <p>As the largest American Airlines hub, Dallas is a super-connected city, effectively shrinking most of the country towards it.  The coasts are closer, the middle of the country is closer, and there are many direct flights available.</p>
+            <p>As the largest American Airlines hub, Dallas is a super-connected city, effectively shrinking most of the country towards it.  The coasts are closer, the middle of the country is closer, and there are many direct flights available to mid-sized and smaller cities.</p>
             <iframe
                 class="map-embed"
-                src="map.html?origin=DFW&amp;embed=true&amp;waitForViewport=true"
+                src="map.html?origin=DFW&mode=flightTime&airports=69&directOnly=true&embed=true&waitForViewport=true"
                 title="Flight times from Dallas/Fort Worth"
                 loading="lazy"
                 scrolling="no"
@@ -147,10 +166,10 @@
 
         <section>
             <h2>Shreveport (SHV)</h2>
-            <p>With a small airport, Shreveport is a bit of an isolated island when it comes to flying.  Most of the country is just as far away, if not farther.  Many "nearby" areas with a direct flight aren't much closer by flight than driving.</p>
+            <p>With a small airport, Shreveport is a bit of an isolated island when it comes to flying.  Most of the country is just as far away, if not farther and direct flights mostly route you to major hubs.</p>
             <iframe
                 class="map-embed"
-                src="map.html?origin=SHV&amp;embed=true&amp;waitForViewport=true"
+                src="map.html?origin=SHV&mode=flightTime&airports=150&directOnly=true&embed=true&waitForViewport=true"
                 title="Flight times from Shreveport"
                 loading="lazy"
                 scrolling="no"
@@ -161,10 +180,10 @@
 
         <section>
             <h2>Austin (AUS)</h2>
-            <p>Austin, with it's mid-sized airport, is a bit of an in-between.  With it's direct flights to major cities, especially those on the coasts, the coasts are closer while much of the middle part of the country remains just as far away.</p>
+            <p>Austin, with its mid-sized airport and direct flights to major cities, the coasts become close.  But many mid-sized or smaller cities requrie connections and remain far away.</p>
             <iframe
                 class="map-embed"
-                src="map.html?origin=AUS&amp;embed=true&amp;waitForViewport=true"
+                src="map.html?origin=AUS&mode=flightTime&airports=69&directOnly=true&embed=true&waitForViewport=true"
                 title="Flight times from Austin"
                 loading="lazy"
                 scrolling="no"
@@ -175,17 +194,17 @@
 
         <section>
             <h2>San Francisco (SFO)</h2>
-            <p>San Francisco is similar to DFW, making the East Coast much closer than it would seem.</p>
+            <p>SFO is bigger than AUS but not as well connected as DFW.  The large availability of direct flights brings the East Coast much closer to the West Coast, but many mid-sized and smaller cities still require a connection.</p>
             <iframe
                 class="map-embed"
-                src="map.html?origin=SFO&amp;embed=true&amp;waitForViewport=true"
+                src="map.html?origin=SFO&mode=flightTime&airports=69&directOnly=true&embed=true&amp;waitForViewport=true"
                 title="Flight times from San Francisco"
                 loading="lazy"
                 scrolling="no"
                 style="overflow: hidden;"
             ></iframe>
             <p class="caption">Toggle between Geographic Distance and Flight Time to see the difference.</p>
-        </section>
+        </section>  
 
         <section>
             <h2>Conclusion</h2>
@@ -196,6 +215,17 @@
             <p>Want to explore from your own city?</p>
             <a href="map.html" target="_blank">Explore the Full Interactive Map</a>
         </div>
+
+        <section>
+            <h2>A Few Assumptions and Considerations</h2>
+            <p>Feel free to take a look at <a href="https://github.com/brandonmburroughs/as-the-plane-flies">the code</a>, but here are few assumptions I've made.</p>
+            <ul>
+                <li>The flight times are based upon Bureau of Transportation Statistics (BTS) data from January 2025 to October 2025.  See <a href="https://github.com/brandonmburroughs/as-the-plane-flies/blob/main/scripts/raw-data/README.md">here</a> for more info on how this data was used.</li>
+                <li>Anomalously long/short flights are filtered out of the dataset and then the average is calculated for each route.</li>
+                <li>Flights with connections use a 90 minute layover duration regardless of the connecting airport.</li>
+                <li>This doesn't take into account some real world considerations such as the airport size (e.g. larger airports likely have more options), multiple airports in one city (e.g. the Bay Area has SFO and SJC, you could combine the flights into one), or peoples different comfort levels with short/long layovers depeneding upon airport (e.g. I know DFW well and can tolerate a short layover).  I'll leave these as an exercise to the reader.</li>
+            </ul>
+        </section>      
 
         <section>
             <h2>How This Came To Be</h2>
