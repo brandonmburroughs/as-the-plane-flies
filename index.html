@@ -166,7 +166,7 @@
 
         <section>
             <h2>Shreveport (SHV)</h2>
-            <p>With a small airport, Shreveport is a bit of an isolated island when it comes to flying.  Most of the country is just as far away, if not farther, and direct flights mostly route you to major hubs.</p>
+            <p>With a small airport, Shreveport is a bit of an isolated island when it comes to flying.  Most of the country is just as far away, if not farther, and direct flights mostly route you to major hubs.  One noteable excpetion is Las Vegas, but in looking into it more, there are only two flights per week (one on Friday and one on Monday).</p>
             <iframe
                 class="map-embed"
                 src="map.html?origin=SHV&mode=flightTime&airports=150&directOnly=true&embed=true&waitForViewport=true"
@@ -224,7 +224,7 @@
                 <li>Anomalously long/short flights are filtered out of the dataset and then the average is calculated for each route.</li>
                 <li>Flights with connections use a 90 minute layover duration regardless of the connecting airport.</li>
                 <li>The "Flight Time" option calculates the ratio of actual travel time vs what would be expected based upon geographic distance between the origin airport and all other airports.  If a city requires a connection to get to, the ratio will be larger, pushing that city farther away.  If there is a direct flight, the ratio will be smaller and will bring the city closer.</li>
-                <li>This doesn't take into account some real world considerations such as the airport size (e.g. larger airports likely have more options), multiple airports in one city (e.g. the Bay Area has SFO and SJC, you could combine the flights into one), or different comfort levels with short/long layovers depending upon airport (e.g. I know DFW well and can tolerate a short layover).  I'll leave these as an exercise to the reader.</li>
+                <li>This doesn't take into account some real world considerations such as the airport size (e.g. larger airports likely have more options), multiple airports in one city (e.g. the Bay Area has SFO and SJC, you could combine the flights into one), or different comfort levels with short/long layovers depending upon airport (e.g. I know DFW well and can tolerate a short layover).  For instance, in looking into flights from Shreveport more, there are only two flights per week to Las Vegas, one flight per day to Denver, and two flights per day to Charlotte.  An updated version of this map could take some of these things into consideration, but I'll leave these as an exercise to the reader or to my future self.</li>
             </ul>
         </section>      
 
